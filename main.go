@@ -7,6 +7,7 @@ import (
 	"gearmanx/pkg/admin"
 	"gearmanx/pkg/command"
 	"gearmanx/pkg/consts"
+	"gearmanx/pkg/daemon"
 	"gearmanx/pkg/http"
 	"gearmanx/pkg/jobs"
 	"gearmanx/pkg/models"
@@ -14,7 +15,6 @@ import (
 
 	"io"
 	"net"
-	"os"
 	"sync/atomic"
 )
 
@@ -42,31 +42,13 @@ func main() {
 	// debug.SetMemoryLimit(512 * 1024 * 1024)
 	go http.Serve()
 
-	listen_port := flag.Int("p", 4730, "server")
+	listen_port := flag.Int("p", 4730, "port")
 	flag.Parse()
 
-	fmt.Printf("# gearmanx\n")
-	fmt.Printf("Listening port %d\n\n", *listen_port)
-
-	sock, err := net.Listen("tcp", fmt.Sprintf(":%d", *listen_port))
-	if err != nil {
-		fmt.Println("Error listening:", err.Error())
-		os.Exit(1)
-	}
-
-	defer sock.Close()
-
-	for {
-		var conn net.Conn
-
-		conn, err = sock.Accept()
-		if err != nil {
-			fmt.Println("Error accepting: ", err.Error())
-			continue
-		}
-
-		go Serve(conn)
-	}
+	daemon.ListenAndServe(
+		fmt.Sprintf(":%d", *listen_port),
+		Serve,
+	)
 }
 
 type IAM struct {
