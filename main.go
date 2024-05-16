@@ -141,8 +141,7 @@ func NewWorkerID() []byte {
 func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 
 	switch cmd.Task {
-	case consts.SUBMIT_JOB_BG, consts.SUBMIT_JOB_HIGH_BG:
-
+	case consts.SUBMIT_JOB_HIGH_BG, consts.SUBMIT_JOB_LOW_BG, consts.SUBMIT_JOB_BG:
 		handler := NewHandler()
 		JobCreated(conn, handler)
 
@@ -170,7 +169,7 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 		WorkCompleted(conn, handler, result)
 		break
 
-	case consts.CAN_DO:
+	case consts.CAN_DO, consts.CAN_DO_TIMEOUT:
 		// fmt.Printf("[worker] Registering for %s fn\n", cmd.Data)
 		if iam.Type == "CLIENT" {
 			iam.Type = "WORKER"
@@ -179,6 +178,32 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 		iam.Functions = append(iam.Functions, string(cmd.Data))
 
 		workers.Register(string(cmd.Data), []byte(iam.ID), conn)
+		break
+
+	case consts.RESET_ABILITIES: // TODO
+		if iam.Type != "WORKER" {
+			// TODO: ERR
+		}
+		for i := range iam.Functions {
+			workers.Unregister(iam.Functions[i], []byte(iam.ID))
+		}
+		iam.Functions = []string{}
+
+		break
+
+	case consts.CANT_DO: // TODO
+		if iam.Type != "WORKER" {
+			// TODO: ERR
+		}
+		new_fns := []string{}
+		for i := range iam.Functions {
+			if iam.Functions[i] == string(cmd.Data) {
+				workers.Unregister(string(cmd.Data), []byte(iam.ID))
+			} else {
+				new_fns = append(new_fns, iam.Functions[i])
+			}
+		}
+		iam.Functions = new_fns
 
 		break
 
