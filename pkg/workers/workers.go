@@ -18,9 +18,10 @@ func init() {
 }
 
 type Worker struct {
-	Func string
-	ID   string
-	Conn net.Conn
+	Func       string   `json:"func"`
+	ID         string   `json:"id"`
+	RemoteAddr string   `json:"remote_addr"`
+	Conn       net.Conn `json:"-"`
 }
 
 var mutex sync.Mutex
@@ -33,9 +34,10 @@ func Register(fn string, ID []byte, conn net.Conn) {
 
 	redis.AddWorker(string(ID), fn)
 	workers[fn] = append(workers[fn], Worker{
-		Func: fn,
-		ID:   string(ID),
-		Conn: conn,
+		Func:       fn,
+		ID:         string(ID),
+		RemoteAddr: conn.RemoteAddr().String(),
+		Conn:       conn,
 	})
 }
 

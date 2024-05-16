@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"gearmanx/pkg/models"
-	"sort"
 	"strings"
 
 	"github.com/redis/go-redis/v9"
@@ -117,8 +116,7 @@ func (f *FnStat) Fill() {
 	f.Jobs += f.InProgress
 }
 
-func Status() string {
-	res := ""
+func Status() map[string]FnStat {
 	fns := map[string]FnStat{}
 
 	jobs, err := conn.Keys(ctx, "*").Result()
@@ -157,19 +155,7 @@ func Status() string {
 		}
 	}
 
-	ordered_fns := []string{}
-
-	for i := range fns {
-		ordered_fns = append(ordered_fns, i)
-	}
-	sort.Strings(ordered_fns)
-
-	for _, i := range ordered_fns {
-		res += fmt.Sprintf("%s\t\t%d\t%d\t%d\n", fns[i].Name, fns[i].Jobs, fns[i].InProgress, fns[i].Workers)
-	}
-	res += ".\n\n"
-
-	return res
+	return fns
 }
 
 func RemoveFromLists(ID []byte) {
