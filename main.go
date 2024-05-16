@@ -11,11 +11,11 @@ import (
 	"gearmanx/pkg/http"
 	"gearmanx/pkg/jobs"
 	"gearmanx/pkg/models"
+	"gearmanx/pkg/utils"
 	"gearmanx/pkg/workers"
 
 	"io"
 	"net"
-	"sync/atomic"
 )
 
 var exception_res = []byte{}
@@ -120,25 +120,11 @@ func Serve(conn net.Conn) {
 	// fmt.Printf("Connection closed %s\n", conn.RemoteAddr())
 }
 
-var jobID atomic.Int64
-
-func NewHandler() []byte {
-	jobID.Add(1)
-	return []byte(fmt.Sprintf("H:gearmanx:%d", jobID.Load()))
-}
-
-var workerID atomic.Int64
-
-func NewWorkerID() []byte {
-	workerID.Add(1)
-	return []byte(fmt.Sprintf("H:worker:%d", workerID.Load()))
-}
-
 func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 
 	switch cmd.Task {
 	case consts.SUBMIT_JOB_HIGH_BG, consts.SUBMIT_JOB_LOW_BG, consts.SUBMIT_JOB_BG:
-		handler := NewHandler()
+		handler := utils.NextHandlerID()
 
 		conn.Write(command.NewByteWithData(
 			consts.RESPONSE,
@@ -158,7 +144,7 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 		break
 
 	case consts.SUBMIT_JOB, consts.SUBMIT_JOB_HIGH, consts.SUBMIT_JOB_LOW:
-		handler := NewHandler()
+		handler := utils.NextHandlerID()
 
 		conn.Write(command.NewByteWithData(
 			consts.RESPONSE,
@@ -183,7 +169,7 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 		// fmt.Printf("[worker] Registering for %s fn\n", cmd.Data)
 		if iam.Type == "CLIENT" {
 			iam.Type = "WORKER"
-			iam.ID = string(NewWorkerID())
+			iam.ID = string(utils.NextWorkerID())
 		}
 		iam.Functions = append(iam.Functions, string(cmd.Data))
 
