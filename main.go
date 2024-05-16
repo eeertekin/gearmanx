@@ -212,10 +212,8 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 		conn.Write(command.NewByteWithData(
 			consts.RESPONSE,
 			consts.JOB_ASSIGN,
-			job.ID,
-			[]byte("\x00"),
-			[]byte(job.Func),
-			[]byte("\x00"),
+			job.ID, consts.NULLTERM,
+			[]byte(job.Func), consts.NULLTERM,
 			[]byte(job.Payload),
 		))
 
@@ -253,7 +251,7 @@ func WorkCompleted(conn net.Conn, handler []byte, result []byte) {
 		consts.RESPONSE,
 		consts.WORK_COMPLETE,
 		handler,
-		[]byte("\x00"),
+		consts.NULLTERM,
 		result,
 	))
 }

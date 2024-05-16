@@ -45,6 +45,8 @@ var (
 	JOB_ASSIGN_ALL               = 40 //  RES    Worker
 	GET_STATUS_UNIQUE            = 41 //  REQ    Client
 	STATUS_RES_UNIQUE            = 42 //  RES    Client
+
+	NULLTERM = []byte("\x00")
 )
 
 var str_map = map[int]string{
