@@ -139,7 +139,12 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 	switch cmd.Task {
 	case consts.SUBMIT_JOB_HIGH_BG, consts.SUBMIT_JOB_LOW_BG, consts.SUBMIT_JOB_BG:
 		handler := NewHandler()
-		JobCreated(conn, handler)
+
+		conn.Write(command.NewByteWithData(
+			consts.RESPONSE,
+			consts.JOB_CREATED,
+			handler,
+		))
 
 		ID, Fn, Payload := cmd.ParsePayload()
 		jobs.Add(&models.Job{
@@ -155,13 +160,23 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 	case consts.SUBMIT_JOB, consts.SUBMIT_JOB_HIGH, consts.SUBMIT_JOB_LOW:
 		handler := NewHandler()
 
-		JobCreated(conn, handler)
+		conn.Write(command.NewByteWithData(
+			consts.RESPONSE,
+			consts.JOB_CREATED,
+			handler,
+		))
 
 		_, Fn, Payload := cmd.ParsePayload()
 
 		result := []byte(fmt.Sprintf("doNormal:: %s(%s) not available yet - use doBackground", Fn, Payload))
 
-		WorkCompleted(conn, handler, result)
+		conn.Write(command.NewByteWithData(
+			consts.RESPONSE,
+			consts.WORK_COMPLETE,
+			handler,
+			consts.NULLTERM,
+			result,
+		))
 		break
 
 	case consts.CAN_DO, consts.CAN_DO_TIMEOUT:
@@ -256,22 +271,4 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 		fmt.Println("")
 
 	}
-}
-
-func JobCreated(conn net.Conn, handler []byte) {
-	conn.Write(command.NewByteWithData(
-		consts.RESPONSE,
-		consts.JOB_CREATED,
-		handler,
-	))
-}
-
-func WorkCompleted(conn net.Conn, handler []byte, result []byte) {
-	conn.Write(command.NewByteWithData(
-		consts.RESPONSE,
-		consts.WORK_COMPLETE,
-		handler,
-		consts.NULLTERM,
-		result,
-	))
 }
