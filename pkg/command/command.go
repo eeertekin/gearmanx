@@ -34,6 +34,13 @@ func NewByteWithData(op_type int, task int, args ...[]byte) (arr []byte) {
 	return arr
 }
 
+func Parse(raw []byte) *Command {
+	c := Command{}
+	c.Parse(raw)
+
+	return &c
+}
+
 func (c *Command) Parse(raw []byte) []byte {
 	if !bytes.HasPrefix(raw, []byte("\x00")) {
 		panic("not a command")
