@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"gearmanx/pkg/admin"
 	"gearmanx/pkg/command"
 	"gearmanx/pkg/consts"
 	"gearmanx/pkg/http"
 	"gearmanx/pkg/jobs"
 	"gearmanx/pkg/models"
 	"gearmanx/pkg/queue"
-	"gearmanx/pkg/redis"
 	"gearmanx/pkg/workers"
 
 	"io"
@@ -104,49 +104,22 @@ func Serve(conn net.Conn) {
 		}
 
 		if bytes.HasPrefix(buf, []byte("status")) {
-			fns := redis.Status()
-
-			ordered_fns := []string{}
-			for i := range fns {
-				ordered_fns = append(ordered_fns, i)
-			}
-			sort.Strings(ordered_fns)
-
-			for _, i := range ordered_fns {
-				conn.Write([]byte(fmt.Sprintf("%s\t\t%d\t%d\t%d\n", fns[i].Name, fns[i].Jobs, fns[i].InProgress, fns[i].Workers)))
-			}
-			conn.Write([]byte(".\n"))
+			admin.Status(conn)
 			continue
 		}
 
 		if bytes.HasPrefix(buf, []byte("version")) {
-			conn.Write([]byte("OK gearmanx v0.1\r\n"))
+			admin.Version(conn)
 			continue
 		}
 
 		if bytes.HasPrefix(buf, []byte("shutdown")) {
-			fmt.Printf("- shutdown requested by %s\n", conn.RemoteAddr())
-			conn.Write([]byte("OK\r\n"))
-			os.Exit(1)
+			admin.Shutdown(conn)
 			continue
 		}
 
 		if bytes.HasPrefix(buf, []byte("workers")) {
-			res := map[string]string{}
-
-			for _, fn_group := range workers.ListWorkers() {
-				for _, w := range fn_group {
-					w.ID = strings.ReplaceAll(w.ID, ":", "-")
-					res[w.RemoteAddr+":"+w.ID] += w.Func + " "
-				}
-			}
-
-			for i := range res {
-				tmp := strings.Split(i, ":")
-				conn.Write([]byte(fmt.Sprintf("%s %s %s : %s\n", tmp[1], tmp[0], tmp[2], res[i])))
-			}
-
-			conn.Write([]byte(".\n"))
+			admin.Workers(conn)
 			continue
 		}
 
