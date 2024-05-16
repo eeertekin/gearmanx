@@ -2,7 +2,10 @@ module gearmanx
 
 go 1.22.2
 
-require github.com/redis/go-redis/v9 v9.5.1
+require (
+	github.com/eeertekin/release v0.0.0-20240220133039-9d9139b67e66
+	github.com/redis/go-redis/v9 v9.5.1
+)
 
 require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
