@@ -10,7 +10,6 @@ import (
 	"gearmanx/pkg/http"
 	"gearmanx/pkg/jobs"
 	"gearmanx/pkg/models"
-	"gearmanx/pkg/queue"
 	"gearmanx/pkg/workers"
 
 	"io"
@@ -169,7 +168,6 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 
 		workers.WakeUpAll(Fn)
 
-		// queue.Async(cmd.JobDetails.Func, cmd.JobDetails.Payload)
 		break
 
 	case consts.SUBMIT_JOB, consts.SUBMIT_JOB_HIGH, consts.SUBMIT_JOB_LOW:
@@ -179,7 +177,7 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 
 		_, Fn, Payload := cmd.ParsePayload()
 
-		result := queue.Sync(Fn, Payload)
+		result := []byte(fmt.Sprintf("doNormal:: %s(%s) not available yet - use doBackground", Fn, Payload))
 
 		WorkCompleted(conn, handler, result)
 		break
