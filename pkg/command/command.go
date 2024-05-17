@@ -19,13 +19,13 @@ func NewByteWithData(op_type int, task int, args ...[]byte) (arr []byte) {
 	} else {
 		arr = []byte("\x00RES")
 	}
-	arr = append(arr, toByteArray(int32(task))...)
+	arr = append(arr, toByteArray(task)...)
 
 	size := 0
 	for i := range args {
 		size += len(args[i])
 	}
-	arr = append(arr, toByteArray(int32(size))...)
+	arr = append(arr, toByteArray(size)...)
 
 	for i := range args {
 		arr = append(arr, []byte(args[i])...)
@@ -79,7 +79,7 @@ func (c *Command) ParseResult() (ID []byte, Payload []byte) {
 	return tmp[0], tmp[1]
 }
 
-func toByteArray(i int32) []byte {
+func toByteArray(i int) []byte {
 	arr := make([]byte, 4)
 
 	binary.BigEndian.PutUint32(arr, uint32(i))
