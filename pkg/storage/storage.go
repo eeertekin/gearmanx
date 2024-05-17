@@ -1,8 +1,12 @@
 package storage
 
-import "gearmanx/pkg/models"
+import (
+	"fmt"
+	"gearmanx/pkg/models"
+	"net/url"
+	"os"
+)
 
-var Backend *Redis
 type Storage interface {
 	AddJob(job *models.Job) error
 	DeleteJob(ID []byte) error
@@ -14,8 +18,6 @@ type Storage interface {
 	Status() map[string]*models.FuncStatus
 }
 
-func AddJob(job *models.Job) {
-	Backend.AddJob(job)
 func NewStorage(uri string) error {
 	u, err := url.Parse(uri)
 	if err != nil {
@@ -37,24 +39,29 @@ func NewStorage(uri string) error {
 
 	return fmt.Errorf("Storage is not available, check URI %s\n", uri)
 }
+
+var backend Storage
+
+func AddJob(job *models.Job) error {
+	return backend.AddJob(job)
 }
 
-func DeleteJob(ID []byte) {
-	Backend.DeleteJob(ID)
+func DeleteJob(ID []byte) error {
+	return backend.DeleteJob(ID)
 }
 
 func GetJob(fn string) *models.Job {
-	return Backend.GetJob(fn)
+	return backend.GetJob(fn)
 }
 
 func AddWorker(ID, fn string) {
-	Backend.AddWorker(ID, fn)
+	backend.AddWorker(ID, fn)
 }
 
 func DeleteWorker(ID, fn string) {
-	Backend.DeleteWorker(ID, fn)
+	backend.DeleteWorker(ID, fn)
 }
 
-func Status() map[string]*FuncStatus {
-	return Backend.Status()
+func Status() map[string]*models.FuncStatus {
+	return backend.Status()
 }
