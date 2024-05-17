@@ -11,3 +11,10 @@ type Job struct {
 func (j *Job) String() string {
 	return fmt.Sprintf("%s :: %s", j.ID, j.Payload)
 }
+
+type FuncStatus struct {
+	Name       string
+	Workers    int64
+	Jobs       int64
+	InProgress int64
+}

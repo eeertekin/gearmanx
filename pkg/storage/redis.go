@@ -127,10 +127,3 @@ func (r *Redis) AddWorker(ID, fn string) {
 func (r *Redis) DeleteWorker(ID, fn string) {
 	r.conn.LRem(r.ctx, "worker::"+fn, 1, ID)
 }
-
-type FuncStatus struct {
-	Name       string
-	Workers    int64
-	Jobs       int64
-	InProgress int64
-}
