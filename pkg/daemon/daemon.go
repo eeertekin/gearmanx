@@ -3,30 +3,51 @@ package daemon
 import (
 	"fmt"
 	"net"
-	"os"
 )
 
-func ListenAndServe(addr string, handler func(net.Conn)) {
-	fmt.Printf("# gearmanx\n")
-	fmt.Printf("Listening port %s\n\n", addr)
+type GearmanX struct {
+	Addr    string
+	Handler func(net.Conn)
 
-	sock, err := net.Listen("tcp", addr)
+	socket net.Listener
+}
+
+func New(addr string, handler func(net.Conn)) *GearmanX {
+	return &GearmanX{
+		Addr:    addr,
+		Handler: handler,
+	}
+}
+
+func (g *GearmanX) Header() {
+	fmt.Printf("# gearmanx\n")
+	fmt.Printf("Listening on %s\n\n", g.Addr)
+}
+
+func (g *GearmanX) Close() {
+	g.socket.Close()
+}
+
+func (g *GearmanX) ListenAndServe() (err error) {
+	g.Header()
+
+	g.socket, err = net.Listen("tcp", g.Addr)
 	if err != nil {
 		fmt.Println("Error listening:", err.Error())
-		os.Exit(1)
+		return err
 	}
 
-	defer sock.Close()
+	defer g.Close()
 
 	for {
 		var conn net.Conn
 
-		conn, err = sock.Accept()
+		conn, err = g.socket.Accept()
 		if err != nil {
 			fmt.Println("Error accepting: ", err.Error())
 			continue
 		}
 
-		go handler(conn)
+		go g.Handler(conn)
 	}
 }

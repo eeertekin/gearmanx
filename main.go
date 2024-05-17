@@ -14,6 +14,7 @@ import (
 	"gearmanx/pkg/models"
 	"gearmanx/pkg/utils"
 	"gearmanx/pkg/workers"
+	"log"
 
 	"io"
 	"net"
@@ -46,10 +47,12 @@ func main() {
 	listen_port := flag.Int("p", 4730, "port")
 	flag.Parse()
 
-	daemon.ListenAndServe(
+	gearmanxd := daemon.New(
 		fmt.Sprintf(":%d", *listen_port),
 		Serve,
 	)
+
+	log.Fatal(gearmanxd.ListenAndServe())
 }
 
 type IAM struct {
