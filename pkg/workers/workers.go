@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"gearmanx/pkg/command"
 	"gearmanx/pkg/consts"
-	"gearmanx/pkg/redis"
+	"gearmanx/pkg/storage"
 	"net"
 	"sync"
 )
@@ -32,7 +32,8 @@ func Register(fn string, ID []byte, conn net.Conn) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	redis.AddWorker(string(ID), fn)
+	storage.AddWorker(string(ID), fn)
+
 	workers[fn] = append(workers[fn], Worker{
 		Func:       fn,
 		ID:         string(ID),
@@ -43,7 +44,7 @@ func Register(fn string, ID []byte, conn net.Conn) {
 
 func Unregister(fn string, ID []byte) {
 	fmt.Printf("[worker-unregister] Purge %s from %s\n", ID, fn)
-	redis.PurgeWorker(string(ID), fn)
+	storage.DeleteWorker(string(ID), fn)
 }
 
 func ListWorkers() map[string][]Worker {
@@ -64,22 +65,3 @@ func WakeUpAll(fn string) {
 		))
 	}
 }
-
-// func init() {
-// 	workers.Store("reverse", func(payload []byte) (r []byte) {
-// 		res := ""
-// 		for _, v := range payload {
-// 			res = string(v) + res
-// 		}
-// 		return []byte(res)
-// 	})
-// }
-
-// func Do(fn string, payload []byte) (res []byte) {
-// 	if f, ok := workers.Load(fn); ok {
-// 		f2 := f.(func([]byte) []byte)
-// 		return f2(payload)
-// 	}
-
-// 	return []byte("I don't know")
-// }

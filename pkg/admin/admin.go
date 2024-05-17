@@ -7,12 +7,12 @@ import (
 	"sort"
 	"strings"
 
-	"gearmanx/pkg/redis"
+	"gearmanx/pkg/storage"
 	"gearmanx/pkg/workers"
 )
 
 func Status(conn net.Conn) {
-	fns := redis.Status()
+	fns := storage.Status()
 
 	ordered_fns := []string{}
 	for i := range fns {

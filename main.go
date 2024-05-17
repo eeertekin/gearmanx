@@ -9,7 +9,9 @@ import (
 	"gearmanx/pkg/consts"
 	"gearmanx/pkg/daemon"
 	"gearmanx/pkg/http"
-	"gearmanx/pkg/jobs"
+	"gearmanx/pkg/storage"
+	"os"
+
 	"gearmanx/pkg/models"
 	"gearmanx/pkg/parser"
 	"gearmanx/pkg/utils"
@@ -25,8 +27,14 @@ func main() {
 	// debug.SetMemoryLimit(512 * 1024 * 1024)
 	go http.Serve()
 
+	redis_uri := flag.String("redis", "127.0.0.1:6379", "redis URI")
 	listen_port := flag.Int("p", 4730, "port")
 	flag.Parse()
+
+	storage.Backend = storage.NewRedisBackend(*redis_uri)
+	if storage.Backend == nil {
+		os.Exit(1)
+	}
 
 	gearmanxd := daemon.New(
 		fmt.Sprintf(":%d", *listen_port),
@@ -108,7 +116,7 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 		))
 
 		ID, Fn, Payload := cmd.ParsePayload()
-		jobs.Add(&models.Job{
+		storage.AddJob(&models.Job{
 			Func:    Fn,
 			ID:      ID,
 			Payload: Payload,
@@ -181,7 +189,7 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 
 		var job *models.Job
 		for _, fn := range iam.Functions {
-			job = jobs.Get(fn)
+			job = storage.GetJob(fn)
 			if job != nil {
 				break
 			}
@@ -207,7 +215,7 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 
 	case consts.WORK_COMPLETE:
 		ID, _ := cmd.ParseResult()
-		jobs.Remove(ID)
+		storage.DeleteJob(ID)
 
 		// ID, Payload := cmd.ParseResult()
 		// fmt.Printf("[worker] Work completed - Result : %s => %s\n", ID, Payload)
