@@ -1,3 +1,6 @@
 FROM ubuntu:24.04
 
-RUN apt update && apt install php8.3-cli php8.3-gearman -y
+RUN apt update && apt install -y \
+    php8.3-cli \
+    php8.3-gearman \
+    gearman-tools
