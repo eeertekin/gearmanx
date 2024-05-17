@@ -17,14 +17,17 @@ while($gmworker->work()) {
 }
 
 function not_reverse($job) {
-  echo sprintf(" fn: %s payload: %s\n", $job->functionName(), $job->workload());
+    file_put_contents("/tmp/not_reverse", $job->workload() . "\n", FILE_APPEND);
+
+//   echo sprintf(" fn: %s payload: %s\n", $job->functionName(), $job->workload());
 //   sleep(10);
   return $job->workload();
 }
 
 
 function reverse($job) {
-  echo sprintf(" fn: %s payload: %s\n", $job->functionName(), $job->workload());
+    file_put_contents("/tmp/reverse", $job->workload() . "\n", FILE_APPEND);
+//   echo sprintf(" fn: %s payload: %s %d\n", $job->functionName(), $job->workload(), strlen($job->workload()));
 //   sleep(10);
 
   return strrev($job->workload());
