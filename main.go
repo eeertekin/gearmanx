@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/binary"
 	"flag"
 	"fmt"
 	"gearmanx/pkg/admin"
@@ -12,6 +11,7 @@ import (
 	"gearmanx/pkg/http"
 	"gearmanx/pkg/jobs"
 	"gearmanx/pkg/models"
+	"gearmanx/pkg/parser"
 	"gearmanx/pkg/utils"
 	"gearmanx/pkg/workers"
 	"log"
@@ -19,25 +19,6 @@ import (
 	"io"
 	"net"
 )
-
-var exception_res = []byte{}
-var exception_req = []byte{}
-
-func ParseCommands(raw []byte) (commands []*command.Command) {
-	com := command.Command{}
-	raw = com.Parse(raw)
-	commands = append(commands, &com)
-	if len(raw) != 0 {
-		commands = append(commands, ParseCommands(raw)...)
-	}
-
-	return commands
-}
-
-func init() {
-	exception_req = command.NewByteWithData(consts.REQUEST, consts.OPTION_REQ, []byte("exceptions"))
-	exception_res = command.NewByteWithData(consts.RESPONSE, consts.OPTION_RES, []byte("exceptions"))
-}
 
 func main() {
 	// debug.SetGCPercent(-1)
@@ -86,49 +67,11 @@ func Serve(conn net.Conn) {
 			continue
 		}
 
-		if bytes.Equal(buf[0:bsize], exception_req) {
-			conn.Write(exception_res)
-			continue
-		}
-
 		if isAdminOperation(conn, buf) {
 			continue
 		}
 
-		commands := []*command.Command{}
-
-		if bytes.HasPrefix(buf, consts.NULLTERM) {
-			size := int(binary.BigEndian.Uint32(buf[8:12]))
-			next_package_at = size + 12
-			if size >= cap(buf) {
-				fmt.Printf("Possible fragmented command %d > %d setting cap to %d \n", size, cap(buf), next_package_at)
-				fragmented_buf.Write(buf)
-			}
-		} else if fragmented_buf.Len() > 0 {
-			if bsize > next_package_at-fragmented_buf.Len() {
-				next_sum := next_package_at - fragmented_buf.Len()
-				fragmented_buf.Write(buf[0:next_sum])
-
-				left_cmd := command.Command{}
-				left_cmd.Parse(buf[next_sum:bsize])
-				commands = append(commands, &left_cmd)
-			} else {
-				fragmented_buf.Write(buf[0:bsize])
-			}
-		}
-
-		if fragmented_buf.Len() > 0 && next_package_at == fragmented_buf.Len() {
-			fmt.Printf("Fragment size : %d\n", fragmented_buf.Len())
-			next_package_at = -1
-			cmd := command.Command{}
-			cmd.Parse(fragmented_buf.Bytes())
-			fragmented_buf.Reset()
-			commands = append([]*command.Command{&cmd}, commands...)
-
-		} else if fragmented_buf.Len() == 0 {
-			commands = ParseCommands(buf[0:bsize])
-
-		}
+		commands := parser.Parse(buf, bsize, &fragmented_buf, &next_package_at)
 
 		// To disable parse packages, open it
 		// commands := ParseCommands(buf[0:bsize])
@@ -137,18 +80,25 @@ func Serve(conn net.Conn) {
 		}
 	}
 
+	// fmt.Printf("Connection closed %s\n", conn.RemoteAddr())
+
 	if iam.Type == "WORKER" {
 		for i := range iam.Functions {
 			workers.Unregister(iam.Functions[i], []byte(iam.ID))
 		}
 	}
-
-	// fmt.Printf("Connection closed %s\n", conn.RemoteAddr())
 }
 
 func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 
 	switch cmd.Task {
+	case consts.OPTION_REQ:
+		conn.Write(command.NewByteWithData(
+			consts.RESPONSE,
+			consts.OPTION_RES,
+			cmd.Data,
+		))
+
 	case consts.SUBMIT_JOB_HIGH_BG, consts.SUBMIT_JOB_LOW_BG, consts.SUBMIT_JOB_BG:
 		handler := utils.NextHandlerID()
 
