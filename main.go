@@ -88,23 +88,7 @@ func Serve(conn net.Conn) {
 			continue
 		}
 
-		if bytes.HasPrefix(buf, []byte("status")) {
-			admin.Status(conn)
-			continue
-		}
-
-		if bytes.HasPrefix(buf, []byte("version")) {
-			admin.Version(conn)
-			continue
-		}
-
-		if bytes.HasPrefix(buf, []byte("shutdown")) {
-			admin.Shutdown(conn)
-			continue
-		}
-
-		if bytes.HasPrefix(buf, []byte("workers")) {
-			admin.Workers(conn)
+		if isAdminOperation(conn, buf) {
 			continue
 		}
 
@@ -296,4 +280,28 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 		fmt.Println("")
 
 	}
+}
+
+func isAdminOperation(conn net.Conn, buf []byte) bool {
+	if bytes.HasPrefix(buf, []byte("status")) {
+		admin.Status(conn)
+		return true
+	}
+
+	if bytes.HasPrefix(buf, []byte("version")) {
+		admin.Version(conn)
+		return true
+	}
+
+	if bytes.HasPrefix(buf, []byte("shutdown")) {
+		admin.Shutdown(conn)
+		return true
+	}
+
+	if bytes.HasPrefix(buf, []byte("workers")) {
+		admin.Workers(conn)
+		return true
+	}
+
+	return false
 }
