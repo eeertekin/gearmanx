@@ -116,8 +116,6 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 
 		workers.WakeUpAll(Fn)
 
-		break
-
 	case consts.SUBMIT_JOB, consts.SUBMIT_JOB_HIGH, consts.SUBMIT_JOB_LOW:
 		handler := utils.NextHandlerID()
 
@@ -138,7 +136,6 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 			consts.NULLTERM,
 			result,
 		))
-		break
 
 	case consts.CAN_DO, consts.CAN_DO_TIMEOUT:
 		// fmt.Printf("[worker] Registering for %s fn\n", cmd.Data)
@@ -149,7 +146,6 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 		iam.Functions = append(iam.Functions, string(cmd.Data))
 
 		workers.Register(string(cmd.Data), []byte(iam.ID), conn)
-		break
 
 	case consts.RESET_ABILITIES: // TODO
 		if iam.Type != "WORKER" {
@@ -159,8 +155,6 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 			workers.Unregister(iam.Functions[i], []byte(iam.ID))
 		}
 		iam.Functions = []string{}
-
-		break
 
 	case consts.CANT_DO: // TODO
 		if iam.Type != "WORKER" {
@@ -175,8 +169,6 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 			}
 		}
 		iam.Functions = new_fns
-
-		break
 
 	case consts.PRE_SLEEP:
 		// fmt.Printf("[worker] Pre sleep requested\n")
@@ -213,8 +205,6 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 			[]byte(job.Payload),
 		))
 
-		break
-
 	case consts.WORK_COMPLETE:
 		ID, _ := cmd.ParseResult()
 		jobs.Remove(ID)
@@ -222,15 +212,12 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 		// ID, Payload := cmd.ParseResult()
 		// fmt.Printf("[worker] Work completed - Result : %s => %s\n", ID, Payload)
 
-		break
-
 	default:
 		fmt.Printf("[unknown] %s requested ", consts.String(cmd.Task))
 		if len(cmd.Data) > 0 {
 			fmt.Printf("with %s", cmd.Data)
 		}
 		fmt.Println("")
-
 	}
 }
 
