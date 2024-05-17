@@ -27,12 +27,11 @@ func main() {
 	// debug.SetMemoryLimit(512 * 1024 * 1024)
 	go http.Serve()
 
-	redis_uri := flag.String("redis", "127.0.0.1:6379", "redis URI")
+	backend_uri := flag.String("storage", "redis://127.0.0.1:6379", "storage URI")
 	listen_port := flag.Int("p", 4730, "port")
 	flag.Parse()
 
-	storage.Backend = storage.NewRedisBackend(*redis_uri)
-	if storage.Backend == nil {
+	if err := storage.NewStorage(*backend_uri); err != nil {
 		os.Exit(1)
 	}
 

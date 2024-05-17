@@ -14,7 +14,7 @@ type Redis struct {
 	ctx  context.Context
 }
 
-func NewRedisBackend(addr string) *Redis {
+func NewRedisBackend(addr string) (*Redis, error) {
 	r := &Redis{
 		ctx: context.Background(),
 		conn: redis.NewClient(&redis.Options{
@@ -25,12 +25,12 @@ func NewRedisBackend(addr string) *Redis {
 
 	if err := r.conn.Ping(r.ctx).Err(); err != nil {
 		fmt.Printf("[storage] redis failed - %s\n", err)
-		return nil
+		return nil, err
 	}
 
 	r.conn.FlushAll(r.ctx)
 
-	return r
+	return r, nil
 }
 
 func (r *Redis) AddJob(job *models.Job) error {
@@ -60,16 +60,7 @@ func (r *Redis) GetJob(fn string) (job *models.Job) {
 	}
 }
 
-func (r *Redis) CountJobQueue(fn string) int64 {
-	job, err := r.conn.LLen(r.ctx, fn).Result()
-	if err != nil {
-		panic(err)
-	}
-
-	return job
-}
-
-func (r *Redis) Status() map[string]*FuncStatus {
+func (r *Redis) Status() map[string]*models.FuncStatus {
 	fns, err := r.conn.Keys(r.ctx, "fn::*").Result()
 	if err != nil {
 		return nil
@@ -89,10 +80,10 @@ func (r *Redis) Status() map[string]*FuncStatus {
 
 	fns = append(fns, workers...)
 
-	res := map[string]*FuncStatus{}
+	res := map[string]*models.FuncStatus{}
 
 	for _, fn := range fns {
-		f := FuncStatus{
+		f := models.FuncStatus{
 			Name: fn,
 		}
 		f.InProgress, _ = r.conn.LLen(r.ctx, "inprogress::"+fn).Result()
@@ -107,7 +98,7 @@ func (r *Redis) Status() map[string]*FuncStatus {
 	return res
 }
 
-func (r *Redis) DeleteJob(ID []byte) any {
+func (r *Redis) DeleteJob(ID []byte) error {
 	fns, err := r.conn.Keys(r.ctx, "inprogress::*").Result()
 	if err != nil {
 		panic(err)
