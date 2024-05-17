@@ -8,24 +8,19 @@ import (
 	"gearmanx/pkg/consts"
 )
 
-var (
-	fragmented_buf  = bytes.Buffer{}
-	next_package_at = 0
-)
-
-func Parse(buf []byte, bsize int) []*command.Command {
+func Parse(buf []byte, bsize int, fragmented_buf *bytes.Buffer, next_package_at *int) []*command.Command {
 	commands := []*command.Command{}
 
 	if bytes.HasPrefix(buf, consts.NULLTERM) {
 		size := int(binary.BigEndian.Uint32(buf[8:12]))
-		next_package_at = size + 12
+		*next_package_at = size + 12
 		if size >= cap(buf) {
 			fmt.Printf("Possible fragmented command %d > %d setting cap to %d \n", size, cap(buf), next_package_at)
 			fragmented_buf.Write(buf)
 		}
 	} else if fragmented_buf.Len() > 0 {
-		if bsize > next_package_at-fragmented_buf.Len() {
-			next_sum := next_package_at - fragmented_buf.Len()
+		if bsize > *next_package_at-fragmented_buf.Len() {
+			next_sum := *next_package_at - fragmented_buf.Len()
 			fragmented_buf.Write(buf[0:next_sum])
 
 			left_cmd := command.Command{}
@@ -36,9 +31,9 @@ func Parse(buf []byte, bsize int) []*command.Command {
 		}
 	}
 
-	if fragmented_buf.Len() > 0 && next_package_at == fragmented_buf.Len() {
+	if fragmented_buf.Len() > 0 && *next_package_at == fragmented_buf.Len() {
 		fmt.Printf("Fragment size : %d\n", fragmented_buf.Len())
-		next_package_at = -1
+		*next_package_at = -1
 		cmd := command.Command{}
 		cmd.Parse(fragmented_buf.Bytes())
 		fragmented_buf.Reset()
