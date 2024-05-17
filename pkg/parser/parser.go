@@ -8,40 +8,40 @@ import (
 	"gearmanx/pkg/consts"
 )
 
-func Parse(buf []byte, bsize int, fragmented_buf *bytes.Buffer, next_package_at *int) []*command.Command {
-	commands := []*command.Command{}
-
+func Parse(buf []byte, bsize int, fragmented_buf *bytes.Buffer) []*command.Command {
 	if bytes.HasPrefix(buf, consts.NULLTERM) {
 		size := int(binary.BigEndian.Uint32(buf[8:12]))
-		*next_package_at = size + 12
-		if size >= cap(buf) {
-			fmt.Printf("Possible fragmented command %d > %d setting cap to %d \n", size, cap(buf), next_package_at)
-			fragmented_buf.Write(buf)
+		if cap(buf) >= size+12 {
+			return ParseCommands(buf[0:bsize])
 		}
-	} else if fragmented_buf.Len() > 0 {
-		if bsize > *next_package_at-fragmented_buf.Len() {
-			next_sum := *next_package_at - fragmented_buf.Len()
-			fragmented_buf.Write(buf[0:next_sum])
 
-			left_cmd := command.Command{}
-			left_cmd.Parse(buf[next_sum:bsize])
-			commands = append(commands, &left_cmd)
-		} else {
+		*fragmented_buf = *bytes.NewBuffer(make([]byte, 0, size+12))
+		fragmented_buf.Write(buf)
+		fmt.Printf("Possible fragmented command %d > %d setting cap to %d => %d \n", size, cap(buf), fragmented_buf.Len(), fragmented_buf.Cap())
+		return []*command.Command{}
+	}
+
+	commands := []*command.Command{}
+
+	if fragmented_buf.Len() > 0 {
+		if fragmented_buf.Available() >= bsize {
 			fragmented_buf.Write(buf[0:bsize])
+		} else {
+			available := fragmented_buf.Available()
+			fragmented_buf.Write(buf[0:available])
+
+			commands = append(commands, command.Parse(buf[available:bsize]))
 		}
 	}
 
-	if fragmented_buf.Len() > 0 && *next_package_at == fragmented_buf.Len() {
-		fmt.Printf("Fragment size : %d\n", fragmented_buf.Len())
-		*next_package_at = -1
-		cmd := command.Command{}
-		cmd.Parse(fragmented_buf.Bytes())
+	if fragmented_buf.Available() == 0 {
+		cmd := command.Parse(fragmented_buf.Bytes())
 		fragmented_buf.Reset()
-		commands = append([]*command.Command{&cmd}, commands...)
-
-	} else if fragmented_buf.Len() == 0 {
-		commands = ParseCommands(buf[0:bsize])
-
+		if len(commands) > 0 {
+			commands = append([]*command.Command{cmd}, commands...)
+		} else {
+			commands = append(commands, cmd)
+		}
 	}
 
 	return commands

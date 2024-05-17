@@ -54,7 +54,6 @@ func Serve(conn net.Conn) {
 	}
 
 	fragmented_buf := bytes.Buffer{}
-	next_package_at := 0
 
 	for {
 		bsize, err = conn.Read(buf)
@@ -71,7 +70,7 @@ func Serve(conn net.Conn) {
 			continue
 		}
 
-		commands := parser.Parse(buf, bsize, &fragmented_buf, &next_package_at)
+		commands := parser.Parse(buf, bsize, &fragmented_buf)
 
 		// To disable parse packages, open it
 		// commands := ParseCommands(buf[0:bsize])
