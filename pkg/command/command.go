@@ -85,3 +85,7 @@ func toByteArray(i int) []byte {
 	binary.BigEndian.PutUint32(arr, uint32(i))
 	return arr
 }
+
+func (c *Command) Bytes() []byte {
+	return NewByteWithData(c.Type, c.Task, c.Data)
+}
