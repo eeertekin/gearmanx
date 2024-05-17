@@ -3,6 +3,16 @@ package storage
 import "gearmanx/pkg/models"
 
 var Backend *Redis
+type Storage interface {
+	AddJob(job *models.Job) error
+	DeleteJob(ID []byte) error
+	GetJob(fn string) *models.Job
+
+	AddWorker(ID, fn string)
+	DeleteWorker(ID, fn string)
+
+	Status() map[string]*models.FuncStatus
+}
 
 func AddJob(job *models.Job) {
 	Backend.AddJob(job)
