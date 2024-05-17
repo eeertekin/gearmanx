@@ -40,13 +40,7 @@ func Add(j *models.Job) {
 }
 
 func Get(fn string) *models.Job {
-	mutex.Lock()
-	defer mutex.Unlock()
-
 	if _, ok := Queue[fn]; !ok {
-		Queue[fn] = &fnqueue.FnQueue{
-			Fn: fn,
-		}
 		return nil
 	}
 
