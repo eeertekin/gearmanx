@@ -33,6 +33,10 @@ func NewRedisBackend(addr string) (*Redis, error) {
 	return r, nil
 }
 
+func (r *Redis) Close() {
+	r.conn.Close()
+}
+
 func (r *Redis) AddJob(job *models.Job) error {
 	err := r.conn.Set(r.ctx, "job::"+string(job.ID), job.Payload, -1).Err()
 	if err != nil {

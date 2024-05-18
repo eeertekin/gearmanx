@@ -8,6 +8,8 @@ import (
 )
 
 type Storage interface {
+	Close()
+
 	AddJob(job *models.Job) error
 	DeleteJob(ID []byte) error
 	GetJob(fn string) *models.Job
