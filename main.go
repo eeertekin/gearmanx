@@ -98,6 +98,13 @@ func Serve(conn net.Conn) {
 func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 
 	switch cmd.Task {
+	case consts.ECHO_REQ:
+		conn.Write(command.NewByteWithData(
+			consts.RESPONSE,
+			consts.ECHO_RES,
+			cmd.Data,
+		))
+
 	case consts.OPTION_REQ:
 		conn.Write(command.NewByteWithData(
 			consts.RESPONSE,
