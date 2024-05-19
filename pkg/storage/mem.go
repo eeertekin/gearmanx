@@ -10,8 +10,9 @@ import (
 )
 
 type Mem struct {
-	DB    *sql.DB
-	stmts sync.Map
+	DB        *sql.DB
+	stmts     sync.Map
+	func_list *LocalStorage
 }
 
 const (
@@ -43,10 +44,6 @@ func NewMemBackend(addr string) (*Mem, error) {
 	DROP TABLE IF EXISTS workers; 
 	CREATE TABLE workers (ID text not null, func text);
 	CREATE INDEX "wfn" ON "workers" ("func");
-
-	DROP TABLE IF EXISTS funcs; 
-	CREATE TABLE funcs (name text not null primary key);
-	CREATE INDEX "funcfn" ON "funcs" ("name");
 	`
 	_, err = db.Exec(sqlStmt)
 	if err != nil {
@@ -55,7 +52,8 @@ func NewMemBackend(addr string) (*Mem, error) {
 	}
 
 	m := Mem{
-		DB: db,
+		DB:        db,
+		func_list: NewLocalStorage(),
 	}
 
 	return &m, nil
@@ -80,8 +78,9 @@ func (mem *Mem) GetStmt(SQL string) *sql.Stmt {
 }
 
 func (mem *Mem) AddJob(job *models.Job) error {
-	mem.GetStmt("INSERT INTO funcs VALUES(?)").Exec(job.Func)
-
+	if !mem.func_list.IsSet(job.Func) {
+		mem.func_list.Set(job.Func, true)
+	}
 	_, err := mem.GetStmt("INSERT INTO queue VALUES(?,?,?,?)").Exec(job.ID, job.Func, WAITING, job.Payload)
 	if err != nil {
 		log.Fatal(err)
@@ -110,38 +109,18 @@ func (mem *Mem) GetJob(fn string) (job *models.Job) {
 	}
 
 	return &j
-
-	// ID, err := r.conn.RPopLPush(r.ctx, "fn::"+fn, "inprogress::"+fn).Result()
-	// if err != nil {
-	// 	return nil
-	// }
-
-	// payload, err := r.conn.Get(r.ctx, "job::"+ID).Result()
-	// if err != nil {
-	// 	return nil
-	// }
 }
 
 func (mem *Mem) Status() map[string]*models.FuncStatus {
-	var err error
-
 	res := map[string]*models.FuncStatus{}
 
-	rows, err := mem.GetStmt(`SELECT name FROM funcs`).Query()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for rows.Next() {
-		f := models.FuncStatus{}
-		err = rows.Scan(&f.Name)
-		if err != nil {
-			log.Fatal(err)
+	for _, fn := range mem.func_list.GetKeys() {
+		res[fn] = &models.FuncStatus{
+			Name: fn,
 		}
-		res[f.Name] = &f
 	}
 
-	rows, err = mem.GetStmt(`SELECT func, status, COUNT(*) FROM queue GROUP BY func, status`).Query()
+	rows, err := mem.GetStmt(`SELECT func, status, COUNT(*) FROM queue GROUP BY func, status`).Query()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -187,8 +166,9 @@ func (mem *Mem) DeleteJob(ID []byte) error {
 }
 
 func (mem *Mem) AddWorker(ID, fn string) {
-	mem.GetStmt("INSERT INTO funcs VALUES(?)").Exec(fn)
-
+	if !mem.func_list.IsSet(fn) {
+		mem.func_list.Set(fn, true)
+	}
 	mem.GetStmt("INSERT INTO workers VALUES(?,?)").Exec(ID, fn)
 }
 
