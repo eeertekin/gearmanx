@@ -39,7 +39,7 @@ func NewStorage(uri string) error {
 		return nil
 	}
 
-	return fmt.Errorf("Storage is not available, check URI %s\n", uri)
+	return fmt.Errorf("Storage is not available, check URI %s", uri)
 }
 
 var backend Storage
