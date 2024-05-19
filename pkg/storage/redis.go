@@ -4,19 +4,20 @@ import (
 	"context"
 	"fmt"
 	"gearmanx/pkg/models"
-	"strings"
 
 	"github.com/redis/go-redis/v9"
 )
 
 type Redis struct {
-	conn *redis.Client
-	ctx  context.Context
+	conn      *redis.Client
+	ctx       context.Context
+	func_list *LocalStorage
 }
 
 func NewRedisBackend(addr string) (*Redis, error) {
 	r := &Redis{
-		ctx: context.Background(),
+		ctx:       context.Background(),
+		func_list: NewLocalStorage(),
 		conn: redis.NewClient(&redis.Options{
 			Addr: addr,
 			DB:   0,
@@ -38,6 +39,10 @@ func (r *Redis) Close() {
 }
 
 func (r *Redis) AddJob(job *models.Job) error {
+	if !r.func_list.IsSet(job.Func) {
+		r.func_list.Set(job.Func, true)
+	}
+
 	err := r.conn.Set(r.ctx, "job::"+string(job.ID), job.Payload, -1).Err()
 	if err != nil {
 		return err
@@ -65,28 +70,9 @@ func (r *Redis) GetJob(fn string) (job *models.Job) {
 }
 
 func (r *Redis) Status() map[string]*models.FuncStatus {
-	fns, err := r.conn.Keys(r.ctx, "fn::*").Result()
-	if err != nil {
-		return nil
-	}
-
-	for i := range fns {
-		fns[i] = strings.TrimPrefix(fns[i], "fn::")
-	}
-
-	workers, err := r.conn.Keys(r.ctx, "worker::*").Result()
-	if err != nil {
-		return nil
-	}
-	for i := range workers {
-		workers[i] = strings.TrimPrefix(workers[i], "worker::")
-	}
-
-	fns = append(fns, workers...)
-
 	res := map[string]*models.FuncStatus{}
 
-	for _, fn := range fns {
+	for _, fn := range r.func_list.GetKeys() {
 		f := models.FuncStatus{
 			Name: fn,
 		}
@@ -116,6 +102,9 @@ func (r *Redis) DeleteJob(ID []byte) error {
 }
 
 func (r *Redis) AddWorker(ID, fn string) {
+	if !r.func_list.IsSet(fn) {
+		r.func_list.Set(fn, true)
+	}
 	r.conn.LPush(r.ctx, "worker::"+fn, ID)
 }
 
