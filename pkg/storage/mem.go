@@ -6,7 +6,8 @@ import (
 	"log"
 	"sync"
 
-	_ "github.com/mattn/go-sqlite3"
+	// _ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 type Mem struct {
@@ -22,8 +23,10 @@ const (
 )
 
 func NewMemBackend(addr string) (*Mem, error) {
-	// db, err := sql.Open("sqlite3", "file:foobar.db?mode=memory&cache=shared")
-	db, err := sql.Open("sqlite3", "file:foobar.db?cache=shared")
+	db, err := sql.Open("sqlite", "file:foobar.db?mode=memory&cache=shared&_journal_mode=WAL")
+
+	// db, err := sql.Open("sqlite3", "file:foobar.db?mode=memory&cache=shared&_journal_mode=WAL")
+	// db, err := sql.Open("sqlite3", "file:foobar.db?cache=shared")
 
 	if err != nil {
 		log.Fatal(err)
