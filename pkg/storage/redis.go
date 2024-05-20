@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"gearmanx/pkg/models"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -47,12 +48,14 @@ func (r *Redis) AddJob(job *models.Job) error {
 		r.func_list.Set(job.Func, true)
 	}
 
-	err := r.conn.Set(r.ctx, "job::"+string(job.ID), job.Payload, -1).Err()
-	if err != nil {
-		return err
-	}
+	pipe := r.conn.Pipeline()
 
-	return r.conn.LPush(r.ctx, "fn::"+job.Func, job.ID).Err()
+	pipe.Set(r.ctx, "job::"+string(job.ID), job.Payload, -1)
+	pipe.RPush(r.ctx, "fn::"+job.Func, job.ID)
+
+	_, err := pipe.Exec(r.ctx)
+
+	return err
 }
 
 func (r *Redis) GetJob(fn string) (job *models.Job) {
@@ -93,16 +96,14 @@ func (r *Redis) Status() map[string]*models.FuncStatus {
 }
 
 func (r *Redis) DeleteJob(ID []byte) error {
-	fns, err := r.conn.Keys(r.ctx, "inprogress::*").Result()
-	if err != nil {
-		panic(err)
+	for _, fn := range r.func_list.GetKeys() {
+		r.conn.LRem(r.ctx, "inprogress::"+fn, 1, ID)
 	}
 
-	for _, i := range fns {
-		r.conn.LRem(r.ctx, i, 1, ID)
-	}
+	return r.conn.Expire(r.ctx, "job::"+string(ID), time.Second).Err()
 
-	return r.conn.Del(r.ctx, "job::"+string(ID)).Err()
+	// return r.conn.LPush(r.ctx, "trash", 1, ID).Err()
+	// return r.conn.Del(r.ctx, "job::"+string(ID)).Err()
 }
 
 func (r *Redis) AddWorker(ID, fn string) {
