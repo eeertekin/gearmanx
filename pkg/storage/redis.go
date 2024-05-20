@@ -29,7 +29,11 @@ func NewRedisBackend(addr string) (*Redis, error) {
 		return nil, err
 	}
 
-	r.conn.FlushAll(r.ctx)
+	// r.conn.FlushAll(r.ctx)
+	keys, _ := r.conn.Keys(r.ctx, "inprogress::*").Result()
+	for _, key := range keys {
+		r.conn.Del(r.ctx, key)
+	}
 
 	return r, nil
 }
