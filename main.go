@@ -236,6 +236,11 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 }
 
 func isAdminOperation(conn net.Conn, buf []byte) bool {
+	if bytes.HasPrefix(buf, []byte("wakeup")) {
+		admin.WakeUpAll()
+		return true
+	}
+
 	if bytes.HasPrefix(buf, []byte("status")) {
 		admin.Status(conn)
 		return true

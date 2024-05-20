@@ -11,6 +11,12 @@ import (
 	"gearmanx/pkg/workers"
 )
 
+func WakeUpAll() {
+	for _, fn := range storage.GetFuncs() {
+		workers.WakeUpAll(fn)
+	}
+}
+
 func Status(conn net.Conn) {
 	fns := storage.Status()
 
