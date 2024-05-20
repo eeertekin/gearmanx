@@ -178,3 +178,7 @@ func (mem *Mem) AddWorker(ID, fn string) {
 func (mem *Mem) DeleteWorker(ID, fn string) {
 	mem.GetStmt("DELETE FROM workers WHERE `ID` = ? AND `func` = ?").Exec(ID, fn)
 }
+
+func (s *Mem) GetFuncs() []string {
+	return s.func_list.GetKeys()
+}

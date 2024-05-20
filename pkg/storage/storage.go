@@ -18,6 +18,8 @@ type Storage interface {
 	DeleteWorker(ID, fn string)
 
 	Status() map[string]*models.FuncStatus
+
+	GetFuncs() []string
 }
 
 func NewStorage(uri string) error {
@@ -66,4 +68,8 @@ func DeleteWorker(ID, fn string) {
 
 func Status() map[string]*models.FuncStatus {
 	return backend.Status()
+}
+
+func GetFuncs() []string {
+	return backend.GetFuncs()
 }

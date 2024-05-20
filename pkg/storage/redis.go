@@ -111,3 +111,7 @@ func (r *Redis) AddWorker(ID, fn string) {
 func (r *Redis) DeleteWorker(ID, fn string) {
 	r.conn.LRem(r.ctx, "worker::"+fn, 1, ID)
 }
+
+func (r *Redis) GetFuncs() []string {
+	return r.func_list.GetKeys()
+}
