@@ -20,6 +20,13 @@ func (l *LocalStorage) Get(key string) any {
 	return l.db[key]
 }
 
+func (l *LocalStorage) Len() int {
+	l.mutex.RLock()
+	defer l.mutex.RUnlock()
+
+	return len(l.db)
+}
+
 func (l *LocalStorage) Delete(key string) any {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
