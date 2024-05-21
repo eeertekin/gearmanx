@@ -13,6 +13,21 @@ func NewLocalStorage() *LocalStorage {
 	}
 }
 
+func (l *LocalStorage) Get(key string) any {
+	l.mutex.RLock()
+	defer l.mutex.RUnlock()
+
+	return l.db[key]
+}
+
+func (l *LocalStorage) Delete(key string) any {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	delete(l.db, key)
+	return nil
+}
+
 func (l *LocalStorage) Set(key string, value any) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
