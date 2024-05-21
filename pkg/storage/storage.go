@@ -34,12 +34,13 @@ func NewStorage(uri string) error {
 			return err
 		}
 		return nil
-	} else if u.Scheme == "mem" {
-		if backend, err = NewMemBackend(u.Host); err != nil {
-			return err
-		}
-		return nil
 	}
+	// else if u.Scheme == "mem" {
+	// 	if backend, err = NewMemBackend(u.Host); err != nil {
+	// 		return err
+	// 	}
+	// 	return nil
+	// }
 
 	return fmt.Errorf("Storage is not available, check URI %s", uri)
 }
