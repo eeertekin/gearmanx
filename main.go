@@ -210,7 +210,8 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 			return
 		}
 
-		// handler := NewHandler()
+		storage.AssignJobToWorker(iam.ID, string(job.ID), job.Func)
+
 		conn.Write(command.NewByteWithData(
 			consts.RESPONSE,
 			consts.JOB_ASSIGN,
@@ -222,6 +223,8 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 	case consts.WORK_COMPLETE:
 		ID, _ := cmd.ParseResult()
 		storage.DeleteJob(ID)
+
+		storage.UnassignJobFromWorker(iam.ID, string(ID), "all")
 
 		// ID, Payload := cmd.ParseResult()
 		// fmt.Printf("[worker] Work completed - Result : %s => %s\n", ID, Payload)

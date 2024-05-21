@@ -30,12 +30,6 @@ func NewRedisBackend(addr string) (*Redis, error) {
 		return nil, err
 	}
 
-	// r.conn.FlushAll(r.ctx)
-	keys, _ := r.conn.Keys(r.ctx, "inprogress::*").Result()
-	for _, key := range keys {
-		r.conn.Del(r.ctx, key)
-	}
-
 	return r, nil
 }
 
@@ -106,6 +100,16 @@ func (r *Redis) DeleteJob(ID []byte) error {
 	// return r.conn.Del(r.ctx, "job::"+string(ID)).Err()
 }
 
+func (r *Redis) AssignJobToWorker(worker_id string, job_id string, fn string) {
+	r.conn.LPush(r.ctx, fmt.Sprintf("wjobs::%s::%s", worker_id, fn), job_id)
+}
+
+func (r *Redis) UnassignJobFromWorker(worker_id string, job_id string, fn string) {
+	for _, fn := range r.func_list.GetKeys() {
+		r.conn.LRem(r.ctx, fmt.Sprintf("wjobs::%s::%s", worker_id, fn), 1, job_id)
+	}
+}
+
 func (r *Redis) AddWorker(ID, fn string) {
 	if !r.func_list.IsSet(fn) {
 		r.func_list.Set(fn, true)
@@ -115,6 +119,16 @@ func (r *Redis) AddWorker(ID, fn string) {
 
 func (r *Redis) DeleteWorker(ID, fn string) {
 	r.conn.LRem(r.ctx, "worker::"+fn, 1, ID)
+	key := fmt.Sprintf("wjobs::%s::%s", ID, fn)
+
+	if count, _ := r.conn.LLen(r.ctx, key).Result(); count > 0 {
+		assigned_jobs, _ := r.conn.LRange(r.ctx, key, 0, -1).Result()
+		for i := range assigned_jobs {
+			r.conn.LRem(r.ctx, "inprogress::"+fn, 1, assigned_jobs[i])
+			r.conn.LPush(r.ctx, "fn::"+fn, assigned_jobs[i])
+		}
+		r.conn.Del(r.ctx, key)
+	}
 }
 
 func (r *Redis) GetFuncs() []string {

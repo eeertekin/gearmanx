@@ -20,6 +20,9 @@ type Storage interface {
 	Status() map[string]*models.FuncStatus
 
 	GetFuncs() []string
+
+	AssignJobToWorker(worker_id string, job_id string, fn string)
+	UnassignJobFromWorker(worker_id string, job_id string, fn string)
 }
 
 func NewStorage(uri string) error {
@@ -73,4 +76,12 @@ func Status() map[string]*models.FuncStatus {
 
 func GetFuncs() []string {
 	return backend.GetFuncs()
+}
+
+func AssignJobToWorker(worker_id string, job_id string, fn string) {
+	backend.AssignJobToWorker(worker_id, job_id, fn)
+}
+
+func UnassignJobFromWorker(worker_id string, job_id string, fn string) {
+	backend.UnassignJobFromWorker(worker_id, job_id, fn)
 }
