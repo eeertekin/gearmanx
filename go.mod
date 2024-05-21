@@ -4,6 +4,7 @@ go 1.22.2
 
 require (
 	github.com/eeertekin/release v0.0.0-20240220133039-9d9139b67e66
+	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.5.1
 )
 
