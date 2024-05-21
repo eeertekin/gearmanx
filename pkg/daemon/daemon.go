@@ -2,14 +2,20 @@ package daemon
 
 import (
 	"fmt"
+	"gearmanx/pkg/storage"
+	"gearmanx/pkg/workers"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 type GearmanX struct {
 	Addr    string
 	Handler func(net.Conn)
 
-	socket net.Listener
+	socket        net.Listener
+	shutting_down bool
 }
 
 func New(addr string, handler func(net.Conn)) *GearmanX {
@@ -28,6 +34,30 @@ func (g *GearmanX) Close() {
 	g.socket.Close()
 }
 
+func (g *GearmanX) HandleSignals() {
+	c := make(chan os.Signal, 2)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		g.shutting_down = true
+
+		fmt.Printf("Shutting down .... \n\n")
+		for _, wrks := range workers.ListWorkers() {
+			for i := range wrks {
+				for _, fn := range storage.GetFuncs() {
+					storage.DeleteWorker(wrks[i].ID, fn)
+				}
+				// wrks[i].Conn.Close()
+			}
+		}
+
+		g.Close()
+
+		os.Exit(1)
+	}()
+
+}
+
 func (g *GearmanX) ListenAndServe() (err error) {
 	g.Header()
 
@@ -37,9 +67,11 @@ func (g *GearmanX) ListenAndServe() (err error) {
 		return err
 	}
 
-	defer g.Close()
-
 	for {
+		if g.shutting_down {
+			break
+		}
+
 		var conn net.Conn
 
 		conn, err = g.socket.Accept()
@@ -50,4 +82,6 @@ func (g *GearmanX) ListenAndServe() (err error) {
 
 		go g.Handler(conn)
 	}
+
+	return nil
 }

@@ -39,6 +39,7 @@ func main() {
 		fmt.Sprintf(":%d", *listen_port),
 		Serve,
 	)
+	gearmanxd.HandleSignals()
 
 	log.Fatal(gearmanxd.ListenAndServe())
 }
@@ -69,8 +70,8 @@ func Serve(conn net.Conn) {
 		}
 
 		if err != nil {
-			fmt.Printf("err> %s\n", err)
-			continue
+			// fmt.Printf("[serve] err> %s\n", err)
+			break
 		}
 
 		if isAdminOperation(conn, buf) {
