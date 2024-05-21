@@ -1,0 +1,157 @@
+package storage
+
+import (
+	"gearmanx/pkg/models"
+	"log"
+
+	"github.com/nutsdb/nutsdb"
+)
+
+type NutsDB struct {
+	DB        *nutsdb.DB
+	func_list *LocalStorage
+}
+
+func NewNutsDBBackend(addr string) (*NutsDB, error) {
+	fileDir := "/tmp/example"
+
+	db, err := nutsdb.Open(
+		nutsdb.DefaultOptions,
+		nutsdb.WithDir(fileDir),
+		nutsdb.WithSegmentSize(1024*1024),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	if err := db.Update(func(tx *nutsdb.Tx) error {
+		return tx.NewBucket(nutsdb.DataStructureBTree, "queue")
+	}); err != nil {
+		log.Fatal(err)
+	}
+
+	s := NutsDB{
+		DB:        db,
+		func_list: NewLocalStorage(),
+	}
+
+	return &s, nil
+}
+
+func (s *NutsDB) Close() {
+	s.DB.Close()
+}
+
+func (s *NutsDB) AddJob(job *models.Job) error {
+	if !s.func_list.IsSet(job.Func) {
+		s.func_list.Set(job.Func, true)
+	}
+
+	err := s.DB.Update(func(tx *nutsdb.Tx) error {
+		return tx.Put("queue", []byte("job::"+string(job.ID)), job.Payload, nutsdb.Persistent)
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return s.DB.Update(
+		func(tx *nutsdb.Tx) error {
+			return tx.RPush("queue", []byte("fn::"+job.Func), job.ID)
+		},
+	)
+}
+
+func (s *NutsDB) GetJob(fn string) (job *models.Job) {
+	var ID []byte
+
+	err := s.DB.Update(
+		func(tx *nutsdb.Tx) error {
+			if item, err := tx.RPop("queue", []byte("fn::"+fn)); err != nil {
+				return err
+			} else {
+				s.DB.Update(
+					func(tx *nutsdb.Tx) error {
+						if err := tx.RPush("queue", []byte("inprogress::"+fn), item); err != nil {
+							return err
+						}
+						return nil
+					},
+				)
+				ID = item
+			}
+			return nil
+		},
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	var payload []byte
+	err = s.DB.View(
+		func(tx *nutsdb.Tx) error {
+			if value, err := tx.Get("queue", []byte("fn::"+string(ID))); err != nil {
+				return err
+			} else {
+				payload = value
+			}
+			return nil
+		},
+	)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	return &models.Job{
+		Func:    fn,
+		Payload: []byte(payload),
+		ID:      []byte(ID),
+	}
+}
+
+func (s *NutsDB) Status() map[string]*models.FuncStatus {
+	res := map[string]*models.FuncStatus{}
+
+	for _, fn := range s.func_list.GetKeys() {
+		f := models.FuncStatus{
+			Name: fn,
+		}
+		// f.InProgress, _ = r.conn.LLen(r.ctx, "inprogress::"+fn).Result()
+		// f.Jobs, _ = r.conn.LLen(r.ctx, "fn::"+fn).Result()
+		// f.Jobs += f.InProgress
+
+		// f.Workers, _ = r.conn.LLen(r.ctx, "worker::"+fn).Result()
+
+		res[fn] = &f
+	}
+
+	return res
+}
+
+func (s *NutsDB) DeleteJob(ID []byte) error {
+	// for _, fn := range s.func_list.GetKeys() {
+	// 	if i, _ := r.conn.LRem(r.ctx, "inprogress::"+fn, 1, ID).Result(); i > 0 {
+	// 		break
+	// 	}
+	// }
+
+	// return r.conn.Del(r.ctx, "job::"+string(ID)).Err()
+	return nil
+}
+
+func (s *NutsDB) AddWorker(ID, fn string) {
+	if !s.func_list.IsSet(fn) {
+		s.func_list.Set(fn, true)
+	}
+	// r.conn.LPush(r.ctx, "worker::"+fn, ID)
+}
+
+func (s *NutsDB) DeleteWorker(ID, fn string) {
+	// r.conn.LRem(r.ctx, "worker::"+fn, 1, ID)
+}
+
+func (s *NutsDB) GetFuncs() []string {
+	return s.func_list.GetKeys()
+}

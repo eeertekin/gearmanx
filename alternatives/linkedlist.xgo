@@ -1,0 +1,137 @@
+package storage
+
+import (
+	"context"
+	"gearmanx/pkg/models"
+	"strings"
+	"sync"
+
+	"github.com/adrianbrad/queue"
+)
+
+type LinkedList struct {
+	ctx   context.Context
+	queue sync.Map
+
+	func_list       *LocalStorage
+	job_list        *LocalStorage
+	inprogress_list *LocalStorage
+	workers         *LocalStorage
+}
+
+func NewLLBackend(addr string) (*LinkedList, error) {
+	s := LinkedList{
+		ctx: context.Background(),
+
+		func_list:       NewLocalStorage(),
+		job_list:        NewLocalStorage(),
+		inprogress_list: NewLocalStorage(),
+		workers:         NewLocalStorage(),
+	}
+
+	return &s, nil
+}
+
+func (s *LinkedList) Close() {}
+
+func (s *LinkedList) AddJob(job *models.Job) error {
+	fnq := s.get_queue("fn::" + job.Func)
+
+	if !s.func_list.IsSet(job.Func) {
+		s.func_list.Set(job.Func, true)
+	}
+
+	s.job_list.Set(string(job.ID), job.Payload)
+
+	fnq.Offer(string(job.ID))
+
+	return nil
+}
+
+func (s *LinkedList) GetJob(fn string) (job *models.Job) {
+	fnq := s.get_queue("fn::" + fn)
+	if fnq.Size() == 0 {
+		return nil
+	}
+
+	ID, err := fnq.Get()
+	if err != nil {
+		return nil
+	}
+
+	s.inprogress_list.Set(fn+"::"+ID, true)
+
+	payload := s.job_list.Get(string(ID)).([]byte)
+
+	return &models.Job{
+		Func:    fn,
+		Payload: []byte(payload),
+		ID:      []byte(ID),
+	}
+}
+
+func (s *LinkedList) get_queue(name string) *queue.Linked[string] {
+	tmp, ok := s.queue.Load(name)
+	if !ok {
+		tmp = queue.NewLinked([]string{})
+		s.queue.Store(name, tmp)
+	}
+
+	return tmp.(*queue.Linked[string])
+}
+
+func (s *LinkedList) Status() map[string]*models.FuncStatus {
+	res := map[string]*models.FuncStatus{}
+
+	for _, fn := range s.func_list.GetKeys() {
+		f := models.FuncStatus{
+			Name: fn,
+		}
+
+		f.InProgress = 0
+		for _, name := range s.inprogress_list.GetKeys() {
+			if strings.HasPrefix(name, fn+"::") {
+				f.InProgress++
+			}
+		}
+
+		f.Jobs = int64(s.get_queue("fn::" + fn).Size())
+		f.Jobs += f.InProgress
+
+		f.Workers = 0
+		for _, name := range s.workers.GetKeys() {
+			if strings.HasPrefix(name, fn+"::") {
+				f.Workers++
+			}
+		}
+
+		res[fn] = &f
+	}
+
+	return res
+}
+
+func (s *LinkedList) DeleteJob(ID []byte) error {
+	s.job_list.Delete(string(ID))
+
+	for _, fn := range s.func_list.GetKeys() {
+		s.inprogress_list.Delete(fn + "::" + string(ID))
+	}
+
+	return nil
+}
+
+func (s *LinkedList) AddWorker(ID, fn string) {
+	if !s.func_list.IsSet(fn) {
+		s.func_list.Set(fn, true)
+	}
+	s.workers.Set(fn+"::"+ID, true)
+}
+
+func (s *LinkedList) DeleteWorker(ID, fn string) {
+	s.workers.Delete(fn + "::" + ID)
+}
+
+func (s *LinkedList) GetFuncs() []string {
+	return s.func_list.GetKeys()
+}

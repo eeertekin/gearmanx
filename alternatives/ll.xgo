@@ -1,0 +1,126 @@
+package storage
+
+import (
+	"errors"
+)
+
+type Node[T comparable] struct {
+	value T
+	next  *Node[T]
+}
+
+type LL[T comparable] struct {
+	head *Node[T]
+	tail *Node[T]
+	len  int
+}
+
+var ErrEmptyList = errors.New("empty list")
+
+func New[T comparable]() *LL[T] {
+	return &LL[T]{}
+}
+
+func (ll *LL[T]) PushBack(v T) {
+	newNode := &Node[T]{value: v}
+
+	if ll.len == 0 {
+		ll.head = newNode
+	} else {
+		ll.tail.next = newNode
+	}
+
+	ll.tail = newNode
+	ll.len++
+}
+
+func (ll *LL[T]) Remove(v T) error {
+	if ll.len == 0 {
+		return ErrEmptyList
+	}
+
+	if ll.head.value == v {
+		ll.head = ll.head.next
+		if ll.head == nil {
+			ll.tail = nil
+		}
+
+		ll.len--
+		return nil
+	}
+
+	current := ll.head
+	for current.next != nil {
+		if current.next.value == v {
+			current.next = current.next.next
+			if current.next == nil {
+				ll.tail = current
+			}
+
+			ll.len--
+			return nil
+		}
+
+		current = current.next
+	}
+
+	return errors.New("not found")
+}
+
+func (ll *LL[T]) Len() int {
+	return ll.len
+}
+
+func (ll *LL[T]) PushFront(v T) {
+	newNode := &Node[T]{value: v, next: ll.head}
+
+	if ll.len == 0 {
+		ll.tail = newNode
+	}
+
+	ll.head = newNode
+	ll.len++
+}
+
+func (ll *LL[T]) PopHead() (T, error) {
+	var zeroV T
+
+	if ll.len == 0 {
+		return zeroV, ErrEmptyList
+	}
+
+	v := ll.head.value
+	ll.head = ll.head.next
+	if ll.head == nil {
+		ll.tail = nil
+	}
+	ll.len--
+
+	return v, nil
+}
+
+func (ll *LL[T]) PopTail() (T, error) {
+	var zeroV T
+
+	if ll.len == 0 {
+		return zeroV, ErrEmptyList
+	}
+
+	if ll.len == 1 {
+		v := ll.head.value
+		ll.head, ll.tail, ll.len = nil, nil, 0
+		return v, nil
+	}
+
+	current := ll.head
+	for current.next != ll.tail {
+		current = current.next
+	}
+
+	v := ll.tail.value
+	current.next = nil
+	ll.tail = current
+	ll.len--
+
+	return v, nil
+}
