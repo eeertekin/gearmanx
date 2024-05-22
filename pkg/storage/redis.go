@@ -49,7 +49,7 @@ func (r *Redis) AddJob(job *models.Job) error {
 		r.func_list.Set(job.Func, true)
 	}
 
-	r.data.Set(r.ctx, "job::"+string(job.ID), job.Payload, -1)
+	r.data.Set(r.ctx, string(job.ID), job.Payload, -1)
 
 	return r.meta.RPush(r.ctx, "fn::"+job.Func, job.ID).Err()
 }
@@ -60,7 +60,7 @@ func (r *Redis) GetJob(fn string) (job *models.Job) {
 		return nil
 	}
 
-	payload, err := r.data.Get(r.ctx, "job::"+ID).Result()
+	payload, err := r.data.Get(r.ctx, ID).Result()
 	if err != nil {
 		return nil
 	}
@@ -96,7 +96,7 @@ func (r *Redis) DeleteJob(ID []byte) error {
 		r.meta.LRem(r.ctx, "inprogress::"+fn, 1, ID)
 	}
 
-	return r.data.Expire(r.ctx, "job::"+string(ID), time.Second).Err()
+	return r.data.Expire(r.ctx, string(ID), time.Second).Err()
 }
 
 func (r *Redis) AssignJobToWorker(worker_id string, job_id string, fn string) {
