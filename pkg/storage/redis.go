@@ -2,8 +2,10 @@ package storage
 
 import (
 	"context"
+	"crypto/md5"
 	"fmt"
 	"gearmanx/pkg/models"
+	"os"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -15,6 +17,13 @@ type Redis struct {
 
 	ctx       context.Context
 	func_list *LocalStorage
+}
+
+var wrk_prefix string
+
+func init() {
+	wrk_prefix, _ = os.Hostname()
+	wrk_prefix = fmt.Sprintf("%x::wrk::", md5.Sum([]byte(wrk_prefix)))
 }
 
 func NewRedisBackend(addr string) (*Redis, error) {
@@ -83,7 +92,7 @@ func (r *Redis) Status() map[string]*models.FuncStatus {
 		f.Jobs, _ = r.meta.LLen(r.ctx, "fn::"+fn).Result()
 		f.Jobs += f.InProgress
 
-		f.Workers, _ = r.meta.LLen(r.ctx, "worker::"+fn).Result()
+		f.Workers, _ = r.meta.LLen(r.ctx, wrk_prefix+fn).Result()
 
 		res[fn] = &f
 	}
@@ -113,11 +122,11 @@ func (r *Redis) AddWorker(ID, fn string) {
 	if !r.func_list.IsSet(fn) {
 		r.func_list.Set(fn, true)
 	}
-	r.meta.LPush(r.ctx, "worker::"+fn, ID)
+	r.meta.LPush(r.ctx, wrk_prefix+fn, ID)
 }
 
 func (r *Redis) DeleteWorker(ID, fn string) {
-	r.meta.LRem(r.ctx, "worker::"+fn, 1, ID)
+	r.meta.LRem(r.ctx, wrk_prefix+fn, 1, ID)
 	key := fmt.Sprintf("wjobs::%s::%s", ID, fn)
 
 	if count, _ := r.meta.LLen(r.ctx, key).Result(); count > 0 {
