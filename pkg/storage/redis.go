@@ -10,7 +10,7 @@ import (
 )
 
 type Redis struct {
-	conn      *redis.Client
+	meta *redis.Client
 	ctx       context.Context
 	func_list *LocalStorage
 }
@@ -19,13 +19,13 @@ func NewRedisBackend(addr string) (*Redis, error) {
 	r := &Redis{
 		ctx:       context.Background(),
 		func_list: NewLocalStorage(),
-		conn: redis.NewClient(&redis.Options{
+		meta: redis.NewClient(&redis.Options{
 			Addr: addr,
 			DB:   0,
 		}),
 	}
 
-	if err := r.conn.Ping(r.ctx).Err(); err != nil {
+	if err := r.meta.Ping(r.ctx).Err(); err != nil {
 		fmt.Printf("[storage] redis failed - %s\n", err)
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func NewRedisBackend(addr string) (*Redis, error) {
 }
 
 func (r *Redis) Close() {
-	r.conn.Close()
+	r.meta.Close()
 }
 
 func (r *Redis) AddJob(job *models.Job) error {
@@ -42,7 +42,7 @@ func (r *Redis) AddJob(job *models.Job) error {
 		r.func_list.Set(job.Func, true)
 	}
 
-	pipe := r.conn.Pipeline()
+	pipe := r.meta.Pipeline()
 
 	pipe.Set(r.ctx, "job::"+string(job.ID), job.Payload, -1)
 	pipe.RPush(r.ctx, "fn::"+job.Func, job.ID)
@@ -53,12 +53,12 @@ func (r *Redis) AddJob(job *models.Job) error {
 }
 
 func (r *Redis) GetJob(fn string) (job *models.Job) {
-	ID, err := r.conn.RPopLPush(r.ctx, "fn::"+fn, "inprogress::"+fn).Result()
+	ID, err := r.meta.RPopLPush(r.ctx, "fn::"+fn, "inprogress::"+fn).Result()
 	if err != nil {
 		return nil
 	}
 
-	payload, err := r.conn.Get(r.ctx, "job::"+ID).Result()
+	payload, err := r.meta.Get(r.ctx, "job::"+ID).Result()
 	if err != nil {
 		return nil
 	}
@@ -77,11 +77,11 @@ func (r *Redis) Status() map[string]*models.FuncStatus {
 		f := models.FuncStatus{
 			Name: fn,
 		}
-		f.InProgress, _ = r.conn.LLen(r.ctx, "inprogress::"+fn).Result()
-		f.Jobs, _ = r.conn.LLen(r.ctx, "fn::"+fn).Result()
+		f.InProgress, _ = r.meta.LLen(r.ctx, "inprogress::"+fn).Result()
+		f.Jobs, _ = r.meta.LLen(r.ctx, "fn::"+fn).Result()
 		f.Jobs += f.InProgress
 
-		f.Workers, _ = r.conn.LLen(r.ctx, "worker::"+fn).Result()
+		f.Workers, _ = r.meta.LLen(r.ctx, "worker::"+fn).Result()
 
 		res[fn] = &f
 	}
@@ -91,22 +91,22 @@ func (r *Redis) Status() map[string]*models.FuncStatus {
 
 func (r *Redis) DeleteJob(ID []byte) error {
 	for _, fn := range r.func_list.GetKeys() {
-		r.conn.LRem(r.ctx, "inprogress::"+fn, 1, ID)
+		r.meta.LRem(r.ctx, "inprogress::"+fn, 1, ID)
 	}
 
-	return r.conn.Expire(r.ctx, "job::"+string(ID), time.Second).Err()
+	return r.meta.Expire(r.ctx, "job::"+string(ID), time.Second).Err()
 
-	// return r.conn.LPush(r.ctx, "trash", 1, ID).Err()
-	// return r.conn.Del(r.ctx, "job::"+string(ID)).Err()
+	// return r.meta.LPush(r.ctx, "trash", 1, ID).Err()
+	// return r.meta.Del(r.ctx, "job::"+string(ID)).Err()
 }
 
 func (r *Redis) AssignJobToWorker(worker_id string, job_id string, fn string) {
-	r.conn.LPush(r.ctx, fmt.Sprintf("wjobs::%s::%s", worker_id, fn), job_id)
+	r.meta.LPush(r.ctx, fmt.Sprintf("wjobs::%s::%s", worker_id, fn), job_id)
 }
 
 func (r *Redis) UnassignJobFromWorker(worker_id string, job_id string, fn string) {
 	for _, fn := range r.func_list.GetKeys() {
-		r.conn.LRem(r.ctx, fmt.Sprintf("wjobs::%s::%s", worker_id, fn), 1, job_id)
+		r.meta.LRem(r.ctx, fmt.Sprintf("wjobs::%s::%s", worker_id, fn), 1, job_id)
 	}
 }
 
@@ -114,20 +114,20 @@ func (r *Redis) AddWorker(ID, fn string) {
 	if !r.func_list.IsSet(fn) {
 		r.func_list.Set(fn, true)
 	}
-	r.conn.LPush(r.ctx, "worker::"+fn, ID)
+	r.meta.LPush(r.ctx, "worker::"+fn, ID)
 }
 
 func (r *Redis) DeleteWorker(ID, fn string) {
-	r.conn.LRem(r.ctx, "worker::"+fn, 1, ID)
+	r.meta.LRem(r.ctx, "worker::"+fn, 1, ID)
 	key := fmt.Sprintf("wjobs::%s::%s", ID, fn)
 
-	if count, _ := r.conn.LLen(r.ctx, key).Result(); count > 0 {
-		assigned_jobs, _ := r.conn.LRange(r.ctx, key, 0, -1).Result()
+	if count, _ := r.meta.LLen(r.ctx, key).Result(); count > 0 {
+		assigned_jobs, _ := r.meta.LRange(r.ctx, key, 0, -1).Result()
 		for i := range assigned_jobs {
-			r.conn.LRem(r.ctx, "inprogress::"+fn, 1, assigned_jobs[i])
-			r.conn.LPush(r.ctx, "fn::"+fn, assigned_jobs[i])
+			r.meta.LRem(r.ctx, "inprogress::"+fn, 1, assigned_jobs[i])
+			r.meta.LPush(r.ctx, "fn::"+fn, assigned_jobs[i])
 		}
-		r.conn.Del(r.ctx, key)
+		r.meta.Del(r.ctx, key)
 	}
 }
 
