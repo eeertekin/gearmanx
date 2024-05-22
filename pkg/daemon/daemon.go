@@ -42,17 +42,14 @@ func (g *GearmanX) HandleSignals() {
 		g.shutting_down = true
 
 		fmt.Printf("Shutting down .... \n\n")
-		for _, wrks := range workers.ListWorkers() {
-			for i := range wrks {
-				for _, fn := range storage.GetFuncs() {
-					storage.DeleteWorker(wrks[i].ID, fn)
-				}
-				// wrks[i].Conn.Close()
+
+		for _, fn := range storage.GetFuncs() {
+			for _, wID := range workers.GetWorkerIDs(fn) {
+				storage.DeleteWorker(wID, fn)
 			}
 		}
 
 		g.Close()
-
 		os.Exit(1)
 	}()
 
