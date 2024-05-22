@@ -20,10 +20,11 @@ type Redis struct {
 }
 
 var wrk_prefix string
+var hostname string
 
 func init() {
-	wrk_prefix, _ = os.Hostname()
-	wrk_prefix = fmt.Sprintf("%x::wrk::", md5.Sum([]byte(wrk_prefix)))
+	hostname, _ = os.Hostname()
+	wrk_prefix = fmt.Sprintf("%x::wrk::", md5.Sum([]byte(hostname)))
 }
 
 func NewRedisBackend(addr string) (*Redis, error) {
