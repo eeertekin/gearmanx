@@ -13,7 +13,7 @@ import (
 var workers map[string]map[string]Worker
 
 func init() {
-	mutex = sync.Mutex{}
+	mutex = sync.RWMutex{}
 
 	workers = make(map[string]map[string]Worker)
 }
@@ -25,11 +25,10 @@ type Worker struct {
 	Conn       net.Conn `json:"-"`
 }
 
-var mutex sync.Mutex
+var mutex sync.RWMutex
 
 func Register(fn string, ID []byte, conn net.Conn) {
 	// fmt.Printf("[worker-register] Register %s from %s\n", ID, fn)
-
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -57,10 +56,15 @@ func Unregister(fn string, ID []byte) {
 }
 
 func ListWorkers() map[string]map[string]Worker {
+	mutex.RLock()
+	defer mutex.RUnlock()
 	return workers
 }
 
 func WakeUpAll(fn string) {
+	mutex.RLock()
+	defer mutex.RUnlock()
+
 	// fmt.Printf("[wake-up-all] %s\n", fn)
 	for i := range workers[fn] {
 		// fmt.Printf("[wake-up] %s\n", workers[fn][i].ID)
@@ -72,6 +76,9 @@ func WakeUpAll(fn string) {
 }
 
 func GetWorkerIDs(fn string) (ids []string) {
+	mutex.RLock()
+	defer mutex.RUnlock()
+
 	for i := range workers[fn] {
 		ids = append(ids, i)
 	}
