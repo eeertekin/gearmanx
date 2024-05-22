@@ -11,6 +11,8 @@ import (
 
 type Redis struct {
 	meta *redis.Client
+	data *redis.Client
+
 	ctx       context.Context
 	func_list *LocalStorage
 }
@@ -22,6 +24,10 @@ func NewRedisBackend(addr string) (*Redis, error) {
 		meta: redis.NewClient(&redis.Options{
 			Addr: addr,
 			DB:   0,
+		}),
+		data: redis.NewClient(&redis.Options{
+			Addr: addr,
+			DB:   1,
 		}),
 	}
 
@@ -35,6 +41,7 @@ func NewRedisBackend(addr string) (*Redis, error) {
 
 func (r *Redis) Close() {
 	r.meta.Close()
+	r.data.Close()
 }
 
 func (r *Redis) AddJob(job *models.Job) error {
@@ -42,14 +49,9 @@ func (r *Redis) AddJob(job *models.Job) error {
 		r.func_list.Set(job.Func, true)
 	}
 
-	pipe := r.meta.Pipeline()
+	r.data.Set(r.ctx, "job::"+string(job.ID), job.Payload, -1)
 
-	pipe.Set(r.ctx, "job::"+string(job.ID), job.Payload, -1)
-	pipe.RPush(r.ctx, "fn::"+job.Func, job.ID)
-
-	_, err := pipe.Exec(r.ctx)
-
-	return err
+	return r.meta.RPush(r.ctx, "fn::"+job.Func, job.ID).Err()
 }
 
 func (r *Redis) GetJob(fn string) (job *models.Job) {
@@ -58,7 +60,7 @@ func (r *Redis) GetJob(fn string) (job *models.Job) {
 		return nil
 	}
 
-	payload, err := r.meta.Get(r.ctx, "job::"+ID).Result()
+	payload, err := r.data.Get(r.ctx, "job::"+ID).Result()
 	if err != nil {
 		return nil
 	}
@@ -94,10 +96,7 @@ func (r *Redis) DeleteJob(ID []byte) error {
 		r.meta.LRem(r.ctx, "inprogress::"+fn, 1, ID)
 	}
 
-	return r.meta.Expire(r.ctx, "job::"+string(ID), time.Second).Err()
-
-	// return r.meta.LPush(r.ctx, "trash", 1, ID).Err()
-	// return r.meta.Del(r.ctx, "job::"+string(ID)).Err()
+	return r.data.Expire(r.ctx, "job::"+string(ID), time.Second).Err()
 }
 
 func (r *Redis) AssignJobToWorker(worker_id string, job_id string, fn string) {
