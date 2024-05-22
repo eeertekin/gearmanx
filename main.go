@@ -158,7 +158,7 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 		// fmt.Printf("[worker] Registering for %s fn\n", cmd.Data)
 		if iam.Type == "CLIENT" {
 			iam.Type = "WORKER"
-			iam.ID = string(utils.NextWorkerID())
+			iam.ID = utils.NextWorkerID()
 		}
 		iam.Functions = append(iam.Functions, string(cmd.Data))
 
@@ -213,8 +213,6 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 			return
 		}
 
-		storage.AssignJobToWorker(iam.ID, string(job.ID), job.Func)
-
 		conn.Write(command.NewByteWithData(
 			consts.RESPONSE,
 			consts.JOB_ASSIGN,
@@ -222,6 +220,8 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 			[]byte(job.Func), consts.NULLTERM,
 			[]byte(job.Payload),
 		))
+
+		storage.AssignJobToWorker(iam.ID, string(job.ID), job.Func)
 
 	case consts.WORK_COMPLETE:
 		ID, _ := cmd.ParseResult()
