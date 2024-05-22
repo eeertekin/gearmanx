@@ -7,14 +7,15 @@ import (
 	"gearmanx/pkg/storage"
 	"net"
 	"sync"
+	"time"
 )
 
-var workers map[string][]Worker
+var workers map[string]map[string]Worker
 
 func init() {
 	mutex = sync.Mutex{}
 
-	workers = make(map[string][]Worker)
+	workers = make(map[string]map[string]Worker)
 }
 
 type Worker struct {
@@ -34,20 +35,28 @@ func Register(fn string, ID []byte, conn net.Conn) {
 
 	storage.AddWorker(string(ID), fn)
 
-	workers[fn] = append(workers[fn], Worker{
+	if workers[fn] == nil {
+		workers[fn] = make(map[string]Worker)
+	}
+
+	workers[fn][string(ID)] = Worker{
 		Func:       fn,
 		ID:         string(ID),
 		RemoteAddr: conn.RemoteAddr().String(),
 		Conn:       conn,
-	})
+	}
 }
 
 func Unregister(fn string, ID []byte) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	fmt.Printf("[worker-unregister] Purge %s from %s\n", ID, fn)
+	delete(workers[fn], string(ID))
 	storage.DeleteWorker(string(ID), fn)
 }
 
-func ListWorkers() map[string][]Worker {
+func ListWorkers() map[string]map[string]Worker {
 	return workers
 }
 
