@@ -10,17 +10,15 @@ import (
 	"time"
 )
 
-var workers map[string]map[string]Worker
+var workers map[string]map[string]*Worker
 
 func init() {
 	mutex = sync.RWMutex{}
 
-	workers = make(map[string]map[string]Worker)
+	workers = make(map[string]map[string]*Worker)
 }
 
 type Worker struct {
-	Func       string   `json:"func"`
-	ID         string   `json:"id"`
 	RemoteAddr string   `json:"remote_addr"`
 	Conn       net.Conn `json:"-"`
 }
@@ -35,12 +33,10 @@ func Register(fn string, ID []byte, conn net.Conn) {
 	storage.AddWorker(string(ID), fn)
 
 	if workers[fn] == nil {
-		workers[fn] = make(map[string]Worker)
+		workers[fn] = make(map[string]*Worker)
 	}
 
-	workers[fn][string(ID)] = Worker{
-		Func:       fn,
-		ID:         string(ID),
+	workers[fn][string(ID)] = &Worker{
 		RemoteAddr: conn.RemoteAddr().String(),
 		Conn:       conn,
 	}
@@ -55,7 +51,7 @@ func Unregister(fn string, ID []byte) {
 	storage.DeleteWorker(string(ID), fn)
 }
 
-func ListWorkers() map[string]map[string]Worker {
+func ListWorkers() map[string]map[string]*Worker {
 	mutex.RLock()
 	defer mutex.RUnlock()
 	return workers
