@@ -98,7 +98,12 @@ func (r *Redis) Status() map[string]*models.FuncStatus {
 		f.Jobs, _ = r.meta.LLen(r.ctx, "fn::"+fn).Result()
 		f.Jobs += f.InProgress
 
-		f.Workers, _ = r.meta.LLen(r.ctx, wrk_prefix+fn).Result()
+		count := int64(0)
+		allwrks, _ := r.meta.Keys(r.ctx, "*::wrk::"+fn).Result()
+		for i := range allwrks {
+			count, _ = r.meta.LLen(r.ctx, allwrks[i]).Result()
+			f.Workers += count
+		}
 
 		res[fn] = &f
 	}
