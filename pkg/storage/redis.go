@@ -142,3 +142,9 @@ func (r *Redis) DeleteWorker(ID, fn string) {
 func (r *Redis) GetFuncs() []string {
 	return r.func_list.GetKeys()
 }
+
+func (r *Redis) UpdateWorkers(fn string, ids []string) {
+	r.meta.Del(r.ctx, wrk_prefix+fn)
+	r.meta.LPush(r.ctx, wrk_prefix+fn, ids)
+	r.meta.Expire(r.ctx, wrk_prefix+fn, 5*time.Second)
+}

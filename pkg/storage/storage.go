@@ -23,6 +23,8 @@ type Storage interface {
 
 	AssignJobToWorker(worker_id string, job_id string, fn string)
 	UnassignJobFromWorker(worker_id string, job_id string, fn string)
+
+	UpdateWorkers(fn string, ids []string)
 }
 
 func NewStorage(uri string) error {
@@ -84,4 +86,8 @@ func AssignJobToWorker(worker_id string, job_id string, fn string) {
 
 func UnassignJobFromWorker(worker_id string, job_id string, fn string) {
 	backend.UnassignJobFromWorker(worker_id, job_id, fn)
+}
+
+func UpdateWorkers(fn string, ids []string) {
+	backend.UpdateWorkers(fn, ids)
 }
