@@ -45,10 +45,9 @@ func Shutdown(conn net.Conn) {
 func Workers(conn net.Conn) {
 	res := map[string]string{}
 
-	for _, fn_group := range workers.ListWorkers() {
-		for _, w := range fn_group {
-			w.ID = strings.ReplaceAll(w.ID, ":", "-")
-			res[w.RemoteAddr+":"+w.ID] += w.Func + " "
+	for fn, fn_group := range workers.ListWorkers() {
+		for ID := range fn_group {
+			res[fn_group[ID].RemoteAddr+":"+ID] += fn + " "
 		}
 	}
 
