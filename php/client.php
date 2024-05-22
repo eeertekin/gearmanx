@@ -1,8 +1,7 @@
 <?php
 
 $gm = new GearmanClient();
-
-$gm->addServer("192.168.64.1");
+$gm->addServer("192.168.64.1", $argv[1] ?? 4730);
 
 // $res = $gm->doNormal("reverse", "hello");
 // var_dump($res);

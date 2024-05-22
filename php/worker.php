@@ -1,8 +1,8 @@
 <?php
 
 $gmworker= new GearmanWorker();
+$gmworker->addServer("192.168.64.1", $argv[1] ?? 4730);
 
-$gmworker->addServer("192.168.64.1");
 $gmworker->addFunction("reverse", "reverse");
 $gmworker->addFunction("not_reverse", "not_reverse");
 $gmworker->addFunction("not_reverse_bla", "not_reverse");
@@ -17,6 +17,9 @@ while($gmworker->work()) {
 }
 
 function not_reverse($job) {
+  sleep(1);
+  var_dump($job->workload());
+  
     file_put_contents("/tmp/not_reverse", $job->workload() . "\n", FILE_APPEND);
 
 //   echo sprintf(" fn: %s payload: %s\n", $job->functionName(), $job->workload());
