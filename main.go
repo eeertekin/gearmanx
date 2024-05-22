@@ -4,25 +4,30 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"io"
+	"log"
+	"net"
+	"os"
+	"time"
+
 	"gearmanx/pkg/admin"
 	"gearmanx/pkg/command"
 	"gearmanx/pkg/consts"
 	"gearmanx/pkg/daemon"
+	"gearmanx/pkg/debounce"
 	"gearmanx/pkg/http"
-	"gearmanx/pkg/storage"
-	"os"
-
 	"gearmanx/pkg/models"
 	"gearmanx/pkg/parser"
+	"gearmanx/pkg/storage"
 	"gearmanx/pkg/utils"
 	"gearmanx/pkg/workers"
-	"log"
-
-	"io"
-	"net"
 )
 
+var debounced func(f func())
+
 func main() {
+	debounced = debounce.New(100 * time.Millisecond)
+
 	// debug.SetGCPercent(-1)
 	// debug.SetMemoryLimit(512 * 1024 * 1024)
 	go http.Serve()
@@ -131,7 +136,9 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 			Payload: Payload,
 		})
 
-		workers.WakeUpAll(Fn)
+		debounced(func() {
+			workers.WakeUpAll(Fn)
+		})
 
 	case consts.SUBMIT_JOB, consts.SUBMIT_JOB_HIGH, consts.SUBMIT_JOB_LOW:
 		handler := utils.NextHandlerID()
