@@ -51,10 +51,6 @@ func ListWorkers() map[string][]Worker {
 	return workers
 }
 
-func GetWorker(fn string) *Worker {
-	return &workers[fn][0]
-}
-
 func WakeUpAll(fn string) {
 	// fmt.Printf("[wake-up-all] %s\n", fn)
 	for i := range workers[fn] {
@@ -63,5 +59,28 @@ func WakeUpAll(fn string) {
 			consts.RESPONSE,
 			consts.NOOP,
 		))
+	}
+}
+
+func GetWorkerIDs(fn string) (ids []string) {
+	for i := range workers[fn] {
+		ids = append(ids, i)
+	}
+	return ids
+}
+
+func Ticker() {
+	ticker := time.NewTicker(5 * time.Second)
+	done := make(chan bool)
+
+	for {
+		select {
+		case <-done:
+			return
+		case <-ticker.C:
+			for _, fn := range storage.GetFuncs() {
+				storage.UpdateWorkers(fn, GetWorkerIDs(fn))
+			}
+		}
 	}
 }

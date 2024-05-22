@@ -41,6 +41,8 @@ func main() {
 	)
 	gearmanxd.HandleSignals()
 
+	go workers.Ticker()
+
 	log.Fatal(gearmanxd.ListenAndServe())
 }
 
