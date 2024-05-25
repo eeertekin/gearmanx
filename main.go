@@ -171,18 +171,30 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 
 		workers.Register(string(cmd.Data), []byte(iam.ID), conn)
 
-	case consts.RESET_ABILITIES: // TODO
+	case consts.RESET_ABILITIES:
 		if iam.Type != "WORKER" {
-			// TODO: ERR
+			conn.Write(command.NewByteWithData(
+				consts.RESPONSE,
+				consts.ERROR,
+				[]byte("not_available"), consts.NULLTERM,
+				[]byte("worker method requested"),
+			))
+			return
 		}
 		for i := range iam.Functions {
 			workers.Unregister(iam.Functions[i], []byte(iam.ID))
 		}
 		iam.Functions = []string{}
 
-	case consts.CANT_DO: // TODO
+	case consts.CANT_DO:
 		if iam.Type != "WORKER" {
-			// TODO: ERR
+			conn.Write(command.NewByteWithData(
+				consts.RESPONSE,
+				consts.ERROR,
+				[]byte("not_available"), consts.NULLTERM,
+				[]byte("worker method requested"),
+			))
+			return
 		}
 		new_fns := []string{}
 		for i := range iam.Functions {
