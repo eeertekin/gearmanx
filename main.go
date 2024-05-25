@@ -52,7 +52,7 @@ func main() {
 }
 
 type IAM struct {
-	Type      string // worker, client
+	Role      int // worker, client
 	ID        string
 	Functions []string
 }
@@ -65,7 +65,7 @@ func Serve(conn net.Conn) {
 	var bsize int
 
 	iam := IAM{
-		Type: "CLIENT",
+		Role: consts.ROLE_CLIENT,
 	}
 
 	fragmented_buf := bytes.Buffer{}
@@ -96,7 +96,7 @@ func Serve(conn net.Conn) {
 
 	// fmt.Printf("Connection closed %s\n", conn.RemoteAddr())
 
-	if iam.Type == "WORKER" {
+	if iam.Role == consts.ROLE_WORKER {
 		for i := range iam.Functions {
 			workers.Unregister(iam.Functions[i], []byte(iam.ID))
 		}
@@ -163,8 +163,8 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 
 	case consts.CAN_DO, consts.CAN_DO_TIMEOUT:
 		// fmt.Printf("[worker] Registering for %s fn\n", cmd.Data)
-		if iam.Type == "CLIENT" {
-			iam.Type = "WORKER"
+		if iam.Role == consts.ROLE_CLIENT {
+			iam.Role = consts.ROLE_WORKER
 			iam.ID = utils.NextWorkerID()
 		}
 		iam.Functions = append(iam.Functions, string(cmd.Data))
@@ -172,7 +172,7 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 		workers.Register(string(cmd.Data), []byte(iam.ID), conn)
 
 	case consts.RESET_ABILITIES:
-		if iam.Type != "WORKER" {
+		if iam.Role != consts.ROLE_WORKER {
 			conn.Write(command.NewByteWithData(
 				consts.RESPONSE,
 				consts.ERROR,
@@ -187,7 +187,7 @@ func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
 		iam.Functions = []string{}
 
 	case consts.CANT_DO:
-		if iam.Type != "WORKER" {
+		if iam.Role != consts.ROLE_WORKER {
 			conn.Write(command.NewByteWithData(
 				consts.RESPONSE,
 				consts.ERROR,

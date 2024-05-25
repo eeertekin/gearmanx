@@ -4,6 +4,9 @@ var (
 	REQUEST  = 100
 	RESPONSE = 101
 
+	ROLE_WORKER = 90
+	ROLE_CLIENT = 91
+
 	CAN_DO                       = 1  // Worker
 	CANT_DO                      = 2  // Worker
 	RESET_ABILITIES              = 3  //  REQ    Worker

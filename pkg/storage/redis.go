@@ -140,6 +140,7 @@ func (r *Redis) DeleteWorker(ID, fn string) {
 	r.meta.LRem(r.ctx, wrk_prefix+fn, 1, ID)
 	key := fmt.Sprintf("wjobs::%s::%s", ID, fn)
 
+	// Move assigned jobs from worker to queue
 	if count, _ := r.meta.LLen(r.ctx, key).Result(); count > 0 {
 		assigned_jobs, _ := r.meta.LRange(r.ctx, key, 0, -1).Result()
 		for i := range assigned_jobs {
