@@ -50,6 +50,8 @@ var (
 	STATUS_RES_UNIQUE            = 42 //  RES    Client
 
 	NULLTERM = []byte("\x00")
+	REQ      = []byte("\x00REQ")
+	RES      = []byte("\x00RES")
 )
 
 var str_map = map[int]string{
