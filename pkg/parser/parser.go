@@ -3,7 +3,6 @@ package parser
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"gearmanx/pkg/command"
 	"gearmanx/pkg/consts"
 )
@@ -17,7 +16,7 @@ func Parse(buf []byte, bsize int, fragmented_buf *bytes.Buffer) []*command.Comma
 
 		*fragmented_buf = *bytes.NewBuffer(make([]byte, 0, size+12))
 		fragmented_buf.Write(buf)
-		fmt.Printf("Possible fragmented command %d > %d setting cap to %d => %d \n", size, cap(buf), fragmented_buf.Len(), fragmented_buf.Cap())
+		// fmt.Printf("Possible fragmented command %d > %d setting cap to %d => %d \n", size, cap(buf), fragmented_buf.Len(), fragmented_buf.Cap())
 		return []*command.Command{}
 	}
 
