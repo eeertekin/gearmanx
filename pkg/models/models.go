@@ -18,3 +18,9 @@ type FuncStatus struct {
 	Jobs       int64
 	InProgress int64
 }
+
+type IAM struct {
+	Role      int // worker, client
+	ID        string
+	Functions []string
+}

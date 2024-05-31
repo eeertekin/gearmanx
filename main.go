@@ -48,7 +48,7 @@ func main() {
 
 	gearmanxd := daemon.New(
 		fmt.Sprintf("%s:%d", *addr, *listen_port),
-		fmt.Sprintf("%s", *backend_uri),
+		*backend_uri,
 		Serve,
 	)
 	gearmanxd.HandleSignals()
@@ -58,12 +58,6 @@ func main() {
 	log.Fatal(gearmanxd.ListenAndServe())
 }
 
-type IAM struct {
-	Role      int // worker, client
-	ID        string
-	Functions []string
-}
-
 func Serve(conn net.Conn) {
 	defer conn.Close()
 
@@ -71,7 +65,7 @@ func Serve(conn net.Conn) {
 	var err error
 	var bsize int
 
-	iam := IAM{
+	iam := models.IAM{
 		Role: consts.ROLE_CLIENT,
 	}
 
@@ -110,7 +104,7 @@ func Serve(conn net.Conn) {
 	}
 }
 
-func HandleCommand(conn net.Conn, iam *IAM, cmd *command.Command) {
+func HandleCommand(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 
 	switch cmd.Task {
 	case consts.ECHO_REQ:
