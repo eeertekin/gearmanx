@@ -35,14 +35,12 @@ func main() {
 	backend_uri := flag.String("storage", "redis://127.0.0.1:6379", "storage URI")
 	listen_port := flag.Int("p", 4730, "port")
 	addr := flag.String("listen", "127.0.0.1", "bind addr")
+
+	_ = flag.String("tcp", "tcp", "protocol")
 	_ = flag.Int("j", 3, "retry count")
 	_ = flag.Int("t", 16, "thread count")
 
 	flag.Parse()
-
-	fmt.Printf("# gearmandx\n")
-	fmt.Printf("  Addr       : %s:%d\n", *addr, *listen_port)
-	fmt.Printf("  Storage    : %s\n\n", *backend_uri)
 
 	if err := storage.NewStorage(*backend_uri); err != nil {
 		os.Exit(1)
@@ -50,6 +48,7 @@ func main() {
 
 	gearmanxd := daemon.New(
 		fmt.Sprintf("%s:%d", *addr, *listen_port),
+		fmt.Sprintf("%s", *backend_uri),
 		Serve,
 	)
 	gearmanxd.HandleSignals()

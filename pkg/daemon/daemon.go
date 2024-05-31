@@ -14,20 +14,24 @@ type GearmanX struct {
 	Addr    string
 	Handler func(net.Conn)
 
+	Storage string
+
 	socket        net.Listener
 	shutting_down bool
 }
 
-func New(addr string, handler func(net.Conn)) *GearmanX {
+func New(addr, storage_addr string, handler func(net.Conn)) *GearmanX {
 	return &GearmanX{
 		Addr:    addr,
+		Storage: storage_addr,
 		Handler: handler,
 	}
 }
 
 func (g *GearmanX) Header() {
 	fmt.Printf("# gearmanx\n")
-	fmt.Printf("Listening on %s\n\n", g.Addr)
+	fmt.Printf("  Addr       : %s://%s\n", "tcp", g.Addr)
+	fmt.Printf("  Storage    : %s\n\n", g.Storage)
 }
 
 func (g *GearmanX) Close() {
