@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 	"os"
@@ -57,4 +58,33 @@ func Workers(conn net.Conn) {
 	}
 
 	conn.Write([]byte(".\n"))
+}
+
+func Handle(conn net.Conn, buf []byte) bool {
+	if bytes.HasPrefix(buf, []byte("wakeup")) {
+		WakeUpAll()
+		return true
+	}
+
+	if bytes.HasPrefix(buf, []byte("status")) {
+		Status(conn)
+		return true
+	}
+
+	if bytes.HasPrefix(buf, []byte("version")) {
+		Version(conn)
+		return true
+	}
+
+	if bytes.HasPrefix(buf, []byte("shutdown")) {
+		Shutdown(conn)
+		return true
+	}
+
+	if bytes.HasPrefix(buf, []byte("workers")) {
+		Workers(conn)
+		return true
+	}
+
+	return false
 }

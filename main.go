@@ -75,7 +75,7 @@ func Serve(conn net.Conn) {
 			break
 		}
 
-		if isAdminOperation(conn, buf) {
+		if admin.Handle(conn, buf) {
 			continue
 		}
 
@@ -95,33 +95,4 @@ func Serve(conn net.Conn) {
 			workers.Unregister(iam.Functions[i], []byte(iam.ID))
 		}
 	}
-}
-
-func isAdminOperation(conn net.Conn, buf []byte) bool {
-	if bytes.HasPrefix(buf, []byte("wakeup")) {
-		admin.WakeUpAll()
-		return true
-	}
-
-	if bytes.HasPrefix(buf, []byte("status")) {
-		admin.Status(conn)
-		return true
-	}
-
-	if bytes.HasPrefix(buf, []byte("version")) {
-		admin.Version(conn)
-		return true
-	}
-
-	if bytes.HasPrefix(buf, []byte("shutdown")) {
-		admin.Shutdown(conn)
-		return true
-	}
-
-	if bytes.HasPrefix(buf, []byte("workers")) {
-		admin.Workers(conn)
-		return true
-	}
-
-	return false
 }
