@@ -66,7 +66,7 @@ func (r *Redis) AddJob(job *models.Job) error {
 
 	r.data.Set(r.ctx, string(job.ID), job.Payload, -1)
 
-	return r.meta.RPush(r.ctx, "fn::"+job.Func, job.ID).Err()
+	return r.meta.LPush(r.ctx, "fn::"+job.Func, job.ID).Err()
 }
 
 func (r *Redis) GetJob(fn string) (job *models.Job) {
