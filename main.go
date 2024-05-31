@@ -8,26 +8,19 @@ import (
 	"log"
 	"net"
 	"os"
-	"time"
 
 	"gearmanx/pkg/admin"
-	"gearmanx/pkg/command"
 	"gearmanx/pkg/consts"
 	"gearmanx/pkg/daemon"
-	"gearmanx/pkg/debounce"
+	"gearmanx/pkg/handler"
 	"gearmanx/pkg/http"
 	"gearmanx/pkg/models"
 	"gearmanx/pkg/parser"
 	"gearmanx/pkg/storage"
-	"gearmanx/pkg/utils"
 	"gearmanx/pkg/workers"
 )
 
-var debounced func(f func())
-
 func main() {
-	debounced = debounce.New(100 * time.Millisecond)
-
 	// debug.SetGCPercent(-1)
 	// debug.SetMemoryLimit(512 * 1024 * 1024)
 	go http.Serve()
@@ -91,7 +84,7 @@ func Serve(conn net.Conn) {
 		// To disable parse packages, open it
 		// commands := ParseCommands(buf[0:bsize])
 		for i := range commands {
-			HandleCommand(conn, &iam, commands[i])
+			handler.Run(conn, &iam, commands[i])
 		}
 	}
 
@@ -101,163 +94,6 @@ func Serve(conn net.Conn) {
 		for i := range iam.Functions {
 			workers.Unregister(iam.Functions[i], []byte(iam.ID))
 		}
-	}
-}
-
-func HandleCommand(conn net.Conn, iam *models.IAM, cmd *command.Command) {
-
-	switch cmd.Task {
-	case consts.ECHO_REQ:
-		conn.Write(command.NewByteWithData(
-			consts.RESPONSE,
-			consts.ECHO_RES,
-			cmd.Data,
-		))
-
-	case consts.OPTION_REQ:
-		conn.Write(command.NewByteWithData(
-			consts.RESPONSE,
-			consts.OPTION_RES,
-			cmd.Data,
-		))
-
-	case consts.SUBMIT_JOB_HIGH_BG, consts.SUBMIT_JOB_LOW_BG, consts.SUBMIT_JOB_BG:
-		handler := utils.NextHandlerID()
-
-		conn.Write(command.NewByteWithData(
-			consts.RESPONSE,
-			consts.JOB_CREATED,
-			handler,
-		))
-
-		ID, Fn, Payload := cmd.ParsePayload()
-		storage.AddJob(&models.Job{
-			Func:    Fn,
-			ID:      ID,
-			Payload: Payload,
-		})
-
-		debounced(func() {
-			workers.WakeUpAll(Fn)
-		})
-
-	case consts.SUBMIT_JOB, consts.SUBMIT_JOB_HIGH, consts.SUBMIT_JOB_LOW:
-		handler := utils.NextHandlerID()
-
-		conn.Write(command.NewByteWithData(
-			consts.RESPONSE,
-			consts.JOB_CREATED,
-			handler,
-		))
-
-		_, Fn, Payload := cmd.ParsePayload()
-
-		result := []byte(fmt.Sprintf("doNormal:: %s(%s) not available yet - use doBackground", Fn, Payload))
-
-		conn.Write(command.NewByteWithData(
-			consts.RESPONSE,
-			consts.WORK_COMPLETE,
-			handler,
-			consts.NULLTERM,
-			result,
-		))
-
-	case consts.CAN_DO, consts.CAN_DO_TIMEOUT:
-		// fmt.Printf("[worker] Registering for %s fn\n", cmd.Data)
-		if iam.Role == consts.ROLE_CLIENT {
-			iam.Role = consts.ROLE_WORKER
-			iam.ID = utils.NextWorkerID()
-		}
-		iam.Functions = append(iam.Functions, string(cmd.Data))
-
-		workers.Register(string(cmd.Data), []byte(iam.ID), conn)
-
-	case consts.RESET_ABILITIES:
-		if iam.Role != consts.ROLE_WORKER {
-			conn.Write(command.NewByteWithData(
-				consts.RESPONSE,
-				consts.ERROR,
-				[]byte("not_available"), consts.NULLTERM,
-				[]byte("worker method requested"),
-			))
-			return
-		}
-		for i := range iam.Functions {
-			workers.Unregister(iam.Functions[i], []byte(iam.ID))
-		}
-		iam.Functions = []string{}
-
-	case consts.CANT_DO:
-		if iam.Role != consts.ROLE_WORKER {
-			conn.Write(command.NewByteWithData(
-				consts.RESPONSE,
-				consts.ERROR,
-				[]byte("not_available"), consts.NULLTERM,
-				[]byte("worker method requested"),
-			))
-			return
-		}
-		new_fns := []string{}
-		for i := range iam.Functions {
-			if iam.Functions[i] == string(cmd.Data) {
-				workers.Unregister(string(cmd.Data), []byte(iam.ID))
-			} else {
-				new_fns = append(new_fns, iam.Functions[i])
-			}
-		}
-		iam.Functions = new_fns
-
-	case consts.PRE_SLEEP:
-		// fmt.Printf("[worker] Pre sleep requested\n")
-		break
-
-	case consts.GRAB_JOB, consts.GRAB_JOB_ALL:
-		// fmt.Printf("[worker] Grab Job requested\n")
-
-		// fmt.Printf("Hello IAM %s and able to do %#v\n", iam.Type, iam.Functions)
-
-		var job *models.Job
-		for _, fn := range iam.Functions {
-			job = storage.GetJob(fn)
-			if job != nil {
-				break
-			}
-		}
-
-		if job == nil {
-			// fmt.Printf("No job found\n")
-			conn.Write(command.NewByteWithData(
-				consts.RESPONSE,
-				consts.NO_JOB,
-			))
-			return
-		}
-
-		conn.Write(command.NewByteWithData(
-			consts.RESPONSE,
-			consts.JOB_ASSIGN,
-			job.ID, consts.NULLTERM,
-			[]byte(job.Func), consts.NULLTERM,
-			[]byte(job.Payload),
-		))
-
-		storage.AssignJobToWorker(iam.ID, string(job.ID), job.Func)
-
-	case consts.WORK_COMPLETE:
-		ID, _ := cmd.ParseResult()
-		storage.DeleteJob(ID)
-
-		storage.UnassignJobFromWorker(iam.ID, string(ID), "all")
-
-		// ID, Payload := cmd.ParseResult()
-		// fmt.Printf("[worker] Work completed - Result : %s => %s\n", ID, Payload)
-
-	default:
-		fmt.Printf("[unknown] %s requested ", consts.String(cmd.Task))
-		if len(cmd.Data) > 0 {
-			fmt.Printf("with %s", cmd.Data)
-		}
-		fmt.Println("")
 	}
 }
 
