@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"gearmanx/pkg/admin"
+	"gearmanx/pkg/clients"
 	"gearmanx/pkg/consts"
 	"gearmanx/pkg/daemon"
 	"gearmanx/pkg/handler"
@@ -63,6 +64,8 @@ func Serve(conn net.Conn) {
 		Role: consts.ROLE_CLIENT,
 		ID:   utils.NewID(),
 	}
+
+	clients.Register(&iam)
 
 	fragmented_buf := bytes.Buffer{}
 

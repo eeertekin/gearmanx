@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"gearmanx/pkg/clients"
 	"gearmanx/pkg/command"
 	"gearmanx/pkg/consts"
 	"gearmanx/pkg/debounce"
@@ -73,6 +74,7 @@ func CanDo(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	// fmt.Printf("[worker] Registering for %s fn\n", cmd.Data)
 	if iam.Role == consts.ROLE_CLIENT {
 		iam.Role = consts.ROLE_WORKER
+		clients.Unregister(iam)
 	}
 	iam.Functions = append(iam.Functions, string(cmd.Data))
 
