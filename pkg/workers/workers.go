@@ -64,8 +64,7 @@ func WakeUpAll(fn string) {
 	// fmt.Printf("[wake-up-all] %s\n", fn)
 	for i := range workers[fn] {
 		// fmt.Printf("[wake-up] %s\n", workers[fn][i].ID)
-		workers[fn][i].Conn.Write(command.NewByteWithData(
-			consts.RESPONSE,
+		workers[fn][i].Conn.Write(command.Response(
 			consts.NOOP,
 		))
 	}

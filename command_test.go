@@ -12,8 +12,7 @@ func TestNewByteWithData(t *testing.T) {
 	test_job_id := "ID-123"
 	test_payload := "job-data-123"
 
-	test_data := command.NewByteWithData(
-		consts.REQUEST,
+	test_data := command.Request(
 		consts.SUBMIT_JOB,
 
 		[]byte(test_fn_name), consts.NULLTERM,

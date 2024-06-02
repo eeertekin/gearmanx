@@ -15,7 +15,7 @@ import (
 func BenchmarkNewByteWithData(b *testing.B) {
 	payload := []byte("\x00reverse\x00test")
 	for i := 0; i < b.N; i++ {
-		command.NewByteWithData(consts.REQUEST, consts.SUBMIT_JOB_BG, payload)
+		command.Request(consts.SUBMIT_JOB_BG, payload)
 	}
 }
 
@@ -29,7 +29,7 @@ func TestParserWithNet(t *testing.T) {
 		payload = append(payload, 1)
 	}
 
-	req := command.NewByteWithData(consts.REQUEST, consts.SUBMIT_JOB_BG, payload)
+	req := command.Request(consts.SUBMIT_JOB_BG, payload)
 
 	go func() {
 		buf := make([]byte, 1024)
@@ -81,8 +81,8 @@ func TestParserWithNetMultiJob(t *testing.T) {
 		payload = append(payload, 1)
 	}
 
-	task1 := command.NewByteWithData(consts.REQUEST, consts.SUBMIT_JOB_BG, payload)
-	task2 := command.NewByteWithData(consts.REQUEST, consts.GRAB_JOB)
+	task1 := command.Request(consts.SUBMIT_JOB_BG, payload)
+	task2 := command.Request(consts.GRAB_JOB)
 
 	task := append(task1, task2...)
 

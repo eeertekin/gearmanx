@@ -56,16 +56,14 @@ func Run(conn net.Conn, iam *models.IAM, cmd *command.Command) bool {
 }
 
 func EchoReq(conn net.Conn, iam *models.IAM, cmd *command.Command) {
-	conn.Write(command.NewByteWithData(
-		consts.RESPONSE,
+	conn.Write(command.Response(
 		consts.ECHO_RES,
 		cmd.Data,
 	))
 }
 
 func OptionReq(conn net.Conn, iam *models.IAM, cmd *command.Command) {
-	conn.Write(command.NewByteWithData(
-		consts.RESPONSE,
+	conn.Write(command.Response(
 		consts.OPTION_RES,
 		cmd.Data,
 	))
@@ -84,8 +82,7 @@ func CanDo(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 
 func ResetAbilities(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	if iam.Role != consts.ROLE_WORKER {
-		conn.Write(command.NewByteWithData(
-			consts.RESPONSE,
+		conn.Write(command.Response(
 			consts.ERROR,
 			[]byte("not_available"), consts.NULLTERM,
 			[]byte("worker method requested"),
@@ -100,8 +97,7 @@ func ResetAbilities(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 
 func CanNotDo(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	if iam.Role != consts.ROLE_WORKER {
-		conn.Write(command.NewByteWithData(
-			consts.RESPONSE,
+		conn.Write(command.Response(
 			consts.ERROR,
 			[]byte("not_available"), consts.NULLTERM,
 			[]byte("worker method requested"),
@@ -127,8 +123,7 @@ func PreSleep(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 func SubmitJob(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	handlerID := utils.NextHandlerID()
 
-	conn.Write(command.NewByteWithData(
-		consts.RESPONSE,
+	conn.Write(command.Response(
 		consts.JOB_CREATED,
 		handlerID,
 	))
@@ -137,8 +132,7 @@ func SubmitJob(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 
 	result := []byte(fmt.Sprintf("doNormal:: %s(%s) not available yet - use doBackground", Fn, Payload))
 
-	conn.Write(command.NewByteWithData(
-		consts.RESPONSE,
+	conn.Write(command.Response(
 		consts.WORK_COMPLETE,
 		handlerID,
 		consts.NULLTERM,
@@ -171,15 +165,13 @@ func GrabJob(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 
 	if job == nil {
 		// fmt.Printf("No job found\n")
-		conn.Write(command.NewByteWithData(
-			consts.RESPONSE,
+		conn.Write(command.Response(
 			consts.NO_JOB,
 		))
 		return
 	}
 
-	conn.Write(command.NewByteWithData(
-		consts.RESPONSE,
+	conn.Write(command.Response(
 		consts.JOB_ASSIGN,
 		job.ID, consts.NULLTERM,
 		[]byte(job.Func), consts.NULLTERM,
@@ -192,8 +184,7 @@ func GrabJob(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 func SubmitJobBg(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	handlerID := utils.NextHandlerID()
 
-	conn.Write(command.NewByteWithData(
-		consts.RESPONSE,
+	conn.Write(command.Response(
 		consts.JOB_CREATED,
 		handlerID,
 	))

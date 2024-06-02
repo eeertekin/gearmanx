@@ -13,7 +13,15 @@ type Command struct {
 	Data []byte
 }
 
-func NewByteWithData(op_type int, task int, args ...[]byte) (arr []byte) {
+func Response(task int, args ...[]byte) (arr []byte) {
+	return createByteArray(consts.RESPONSE, task, args...)
+}
+
+func Request(task int, args ...[]byte) (arr []byte) {
+	return createByteArray(consts.REQUEST, task, args...)
+}
+
+func createByteArray(op_type int, task int, args ...[]byte) (arr []byte) {
 	if op_type == consts.REQUEST {
 		arr = []byte("\x00REQ")
 	} else {
@@ -87,5 +95,5 @@ func toByteArray(i int) []byte {
 }
 
 func (c *Command) Bytes() []byte {
-	return NewByteWithData(c.Type, c.Task, c.Data)
+	return createByteArray(c.Type, c.Task, c.Data)
 }
