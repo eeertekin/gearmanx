@@ -14,6 +14,6 @@ func NextHandlerID() []byte {
 	return []byte(fmt.Sprintf("H:x:%d", jobID.Load()))
 }
 
-func NextWorkerID() string {
+func NewID() string {
 	return xid.New().String()
 }

@@ -73,7 +73,6 @@ func CanDo(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	// fmt.Printf("[worker] Registering for %s fn\n", cmd.Data)
 	if iam.Role == consts.ROLE_CLIENT {
 		iam.Role = consts.ROLE_WORKER
-		iam.ID = utils.NextWorkerID()
 	}
 	iam.Functions = append(iam.Functions, string(cmd.Data))
 

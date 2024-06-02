@@ -17,6 +17,7 @@ import (
 	"gearmanx/pkg/models"
 	"gearmanx/pkg/parser"
 	"gearmanx/pkg/storage"
+	"gearmanx/pkg/utils"
 	"gearmanx/pkg/workers"
 )
 
@@ -60,6 +61,7 @@ func Serve(conn net.Conn) {
 
 	iam := models.IAM{
 		Role: consts.ROLE_CLIENT,
+		ID:   utils.NewID(),
 	}
 
 	fragmented_buf := bytes.Buffer{}
