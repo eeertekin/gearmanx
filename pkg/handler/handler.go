@@ -47,11 +47,7 @@ func init() {
 
 func Run(conn net.Conn, iam *models.IAM, cmd *command.Command) bool {
 	if _, ok := fn_router[cmd.Task]; !ok {
-		fmt.Printf("[unknown] %s requested ", consts.String(cmd.Task))
-		if len(cmd.Data) > 0 {
-			fmt.Printf("with %s", cmd.Data)
-		}
-		fmt.Println("")
+		fmt.Printf("[unknown] %s requested with (%s)\n", consts.String(cmd.Task), cmd.Data)
 		return false
 	}
 
