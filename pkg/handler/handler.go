@@ -125,12 +125,12 @@ func PreSleep(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 }
 
 func SubmitJob(conn net.Conn, iam *models.IAM, cmd *command.Command) {
-	handler := utils.NextHandlerID()
+	handlerID := utils.NextHandlerID()
 
 	conn.Write(command.NewByteWithData(
 		consts.RESPONSE,
 		consts.JOB_CREATED,
-		handler,
+		handlerID,
 	))
 
 	_, Fn, Payload := cmd.ParsePayload()
@@ -140,7 +140,7 @@ func SubmitJob(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	conn.Write(command.NewByteWithData(
 		consts.RESPONSE,
 		consts.WORK_COMPLETE,
-		handler,
+		handlerID,
 		consts.NULLTERM,
 		result,
 	))
@@ -190,12 +190,12 @@ func GrabJob(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 }
 
 func SubmitJobBg(conn net.Conn, iam *models.IAM, cmd *command.Command) {
-	handler := utils.NextHandlerID()
+	handlerID := utils.NextHandlerID()
 
 	conn.Write(command.NewByteWithData(
 		consts.RESPONSE,
 		consts.JOB_CREATED,
-		handler,
+		handlerID,
 	))
 
 	ID, Fn, Payload := cmd.ParsePayload()
