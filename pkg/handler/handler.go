@@ -143,13 +143,13 @@ func SubmitJob(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 }
 
 func WorkComplete(conn net.Conn, iam *models.IAM, cmd *command.Command) {
-	ID, _ := cmd.ParseResult()
+	ID, payload := cmd.ParseResult()
 	storage.DeleteJob(ID)
 
 	storage.UnassignJobFromWorker(iam.ID, string(ID), "all")
-
-	// ID, Payload := cmd.ParseResult()
 	// fmt.Printf("[worker] Work completed - Result : %s => %s\n", ID, Payload)
+
+	clients.Notify(ID, payload)
 }
 
 func GrabJob(conn net.Conn, iam *models.IAM, cmd *command.Command) {
