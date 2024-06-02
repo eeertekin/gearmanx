@@ -51,7 +51,10 @@ func Parse(raw []byte) *Command {
 
 func (c *Command) Parse(raw []byte) []byte {
 	if !bytes.HasPrefix(raw, []byte("\x00")) {
-		panic("not a command")
+		// panic("not a command")
+		c.Type = consts.REQUEST
+		c.Task = consts.NOOP
+		return []byte{}
 	}
 
 	if bytes.Equal(raw[1:4], []byte("REQ")) {
