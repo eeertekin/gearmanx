@@ -129,9 +129,23 @@ func SubmitJob(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 		handlerID,
 	))
 
-	_, Fn, Payload := cmd.ParsePayload()
+	if iam.WaitingJobs == nil {
+		iam.WaitingJobs = map[string]chan []byte{}
+	}
 
-	result := []byte(fmt.Sprintf("doNormal:: %s(%s) not available yet - use doBackground", Fn, Payload))
+	ID, Fn, Payload := cmd.ParsePayload()
+	iam.WaitingJobs[string(ID)] = make(chan []byte, 1)
+
+	storage.AddJob(&models.Job{
+		Func:    Fn,
+		ID:      ID,
+		Payload: Payload,
+	})
+	go workers.WakeUpAll(Fn)
+
+	result := <-iam.WaitingJobs[string(ID)]
+	close(iam.WaitingJobs[string(ID)])
+	delete(iam.WaitingJobs, string(ID))
 
 	conn.Write(command.Response(
 		consts.WORK_COMPLETE,
