@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
+	"gearmanx/pkg/config"
 	"gearmanx/pkg/models"
 	"os"
 	"time"
@@ -24,7 +25,7 @@ var hostname string
 
 func init() {
 	hostname, _ = os.Hostname()
-	wrk_prefix = fmt.Sprintf("%x::wrk::", md5.Sum([]byte(hostname)))
+	wrk_prefix = fmt.Sprintf("%x::wrk::", md5.Sum([]byte(hostname+fmt.Sprintf("%d", config.Port))))
 }
 
 func NewRedisBackend(addr string) (*Redis, error) {
