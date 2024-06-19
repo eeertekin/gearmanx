@@ -25,12 +25,3 @@ func Unregister(iam *models.IAM) {
 
 	delete(data, iam.ID)
 }
-
-func Notify(ID []byte, payload []byte) {
-	for i := range data {
-		if data[i].WaitingJobs[string(ID)] != nil {
-			data[i].WaitingJobs[string(ID)] <- payload
-			break
-		}
-	}
-}

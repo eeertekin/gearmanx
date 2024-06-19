@@ -13,6 +13,8 @@ type Storage interface {
 	AddJob(job *models.Job) error
 	DeleteJob(ID []byte) error
 	GetJob(fn string) *models.Job
+	WaitJob(ID []byte) []byte
+	JobResult(ID, payload []byte)
 
 	AddWorker(ID, fn string)
 	DeleteWorker(ID, fn string)
@@ -54,6 +56,14 @@ var backend Storage
 
 func AddJob(job *models.Job) error {
 	return backend.AddJob(job)
+}
+
+func WaitJob(ID []byte) []byte {
+	return backend.WaitJob(ID)
+}
+
+func JobResult(ID, payload []byte) {
+	backend.JobResult(ID, payload)
 }
 
 func DeleteJob(ID []byte) error {

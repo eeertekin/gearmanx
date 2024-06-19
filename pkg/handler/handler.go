@@ -129,12 +129,7 @@ func SubmitJob(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 		handlerID,
 	))
 
-	if iam.WaitingJobs == nil {
-		iam.WaitingJobs = map[string]chan []byte{}
-	}
-
 	ID, Fn, Payload := cmd.ParsePayload()
-	iam.WaitingJobs[string(ID)] = make(chan []byte, 1)
 
 	storage.AddJob(&models.Job{
 		Func:    Fn,
@@ -143,9 +138,7 @@ func SubmitJob(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	})
 	go workers.WakeUpAll(Fn)
 
-	result := <-iam.WaitingJobs[string(ID)]
-	close(iam.WaitingJobs[string(ID)])
-	delete(iam.WaitingJobs, string(ID))
+	result := storage.WaitJob(ID)
 
 	conn.Write(command.Response(
 		consts.WORK_COMPLETE,
@@ -163,7 +156,7 @@ func WorkComplete(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	storage.UnassignJobFromWorker(iam.ID, string(ID), "all")
 	// fmt.Printf("[worker] Work completed - Result : %s => %s\n", ID, Payload)
 
-	clients.Notify(ID, payload)
+	storage.JobResult(ID, payload)
 }
 
 func GrabJob(conn net.Conn, iam *models.IAM, cmd *command.Command) {

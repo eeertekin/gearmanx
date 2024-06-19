@@ -23,6 +23,4 @@ type IAM struct {
 	Role      int // worker, client
 	ID        string
 	Functions []string
-
-	WaitingJobs map[string]chan []byte
 }

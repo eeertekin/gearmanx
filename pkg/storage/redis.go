@@ -161,3 +161,20 @@ func (r *Redis) UpdateWorkers(fn string, ids []string) {
 	r.meta.LPush(r.ctx, wrk_prefix+fn, ids)
 	r.meta.Expire(r.ctx, wrk_prefix+fn, 5*time.Second)
 }
+
+func (r *Redis) WaitJob(ID []byte) []byte {
+	sub := r.meta.Subscribe(r.ctx, "job::channel::"+string(ID))
+	msg := <-sub.Channel()
+
+	return []byte(msg.Payload)
+}
+
+func (r *Redis) JobResult(ID, payload []byte) {
+	err := r.meta.PubSubChannels(r.ctx, "job::channel::"+string(ID)).Err()
+	if err != nil {
+		fmt.Printf("redis> job result err : %s\n", err)
+		return
+	}
+
+	r.meta.Publish(r.ctx, "job::channel::"+string(ID), payload)
+}
