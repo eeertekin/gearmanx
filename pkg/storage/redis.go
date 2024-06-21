@@ -89,7 +89,7 @@ func (r *Redis) GetJob(fn string) (job *models.Job) {
 func (r *Redis) Status() map[string]*models.FuncStatus {
 	res := map[string]*models.FuncStatus{}
 
-	for _, fn := range r.func_list.GetKeys() {
+	for _, fn := range r.GetFuncs() {
 		f := models.FuncStatus{
 			Name: fn,
 		}
@@ -111,7 +111,7 @@ func (r *Redis) Status() map[string]*models.FuncStatus {
 }
 
 func (r *Redis) DeleteJob(ID []byte) error {
-	for _, fn := range r.func_list.GetKeys() {
+	for _, fn := range r.GetFuncs() {
 		r.meta.LRem(r.ctx, "inprogress::"+fn, 1, ID)
 	}
 
@@ -123,7 +123,7 @@ func (r *Redis) AssignJobToWorker(worker_id string, job_id string, fn string) {
 }
 
 func (r *Redis) UnassignJobFromWorker(worker_id string, job_id string, fn string) {
-	for _, fn := range r.func_list.GetKeys() {
+	for _, fn := range r.GetFuncs() {
 		r.meta.LRem(r.ctx, fmt.Sprintf("wjobs::%s::%s", worker_id, fn), 1, job_id)
 	}
 }
