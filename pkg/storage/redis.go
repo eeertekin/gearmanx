@@ -23,12 +23,10 @@ type Redis struct {
 var wrk_prefix string
 var hostname string
 
-func init() {
+func NewRedisBackend(addr string) (*Redis, error) {
 	hostname, _ = os.Hostname()
 	wrk_prefix = fmt.Sprintf("%x::wrk::", md5.Sum([]byte(hostname+fmt.Sprintf("%d", config.Port))))
-}
 
-func NewRedisBackend(addr string) (*Redis, error) {
 	r := &Redis{
 		ctx:       context.Background(),
 		func_list: NewLocalStorage(),
