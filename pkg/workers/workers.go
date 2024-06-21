@@ -10,17 +10,12 @@ import (
 	"time"
 )
 
-var workers map[string]map[string]*Worker
+var workers map[string]map[string]net.Conn
 
 func init() {
 	mutex = sync.RWMutex{}
 
-	workers = make(map[string]map[string]*Worker)
-}
-
-type Worker struct {
-	RemoteAddr string   `json:"remote_addr"`
-	Conn       net.Conn `json:"-"`
+	workers = make(map[string]map[string]net.Conn)
 }
 
 var mutex sync.RWMutex
@@ -33,13 +28,10 @@ func Register(fn string, ID []byte, conn net.Conn) {
 	storage.AddWorker(string(ID), fn)
 
 	if workers[fn] == nil {
-		workers[fn] = make(map[string]*Worker)
+		workers[fn] = make(map[string]net.Conn)
 	}
 
-	workers[fn][string(ID)] = &Worker{
-		RemoteAddr: conn.RemoteAddr().String(),
-		Conn:       conn,
-	}
+	workers[fn][string(ID)] = conn
 }
 
 func Unregister(fn string, ID []byte) {
@@ -51,7 +43,7 @@ func Unregister(fn string, ID []byte) {
 	storage.DeleteWorker(string(ID), fn)
 }
 
-func ListWorkers() map[string]map[string]*Worker {
+func ListWorkers() map[string]map[string]net.Conn {
 	mutex.RLock()
 	defer mutex.RUnlock()
 	return workers
@@ -64,7 +56,7 @@ func WakeUpAll(fn string) {
 	// fmt.Printf("[wake-up-all] %s\n", fn)
 	for i := range workers[fn] {
 		// fmt.Printf("[wake-up] %s\n", workers[fn][i].ID)
-		workers[fn][i].Conn.Write(command.Response(
+		workers[fn][i].Write(command.Response(
 			consts.NOOP,
 		))
 	}

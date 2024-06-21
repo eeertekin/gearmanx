@@ -48,7 +48,7 @@ func Workers(conn net.Conn) {
 
 	for fn, fn_group := range workers.ListWorkers() {
 		for ID := range fn_group {
-			res[fn_group[ID].RemoteAddr+":"+ID] += fn + " "
+			res[fn_group[ID].RemoteAddr().String()+":"+ID] += fn + " "
 		}
 	}
 
