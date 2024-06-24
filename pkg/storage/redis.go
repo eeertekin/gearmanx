@@ -2,11 +2,11 @@ package storage
 
 import (
 	"context"
-	"crypto/md5"
 	"fmt"
 	"gearmanx/pkg/config"
 	"gearmanx/pkg/models"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -25,7 +25,11 @@ var hostname string
 
 func NewRedisBackend(addr string) (*Redis, error) {
 	hostname, _ = os.Hostname()
-	wrk_prefix = fmt.Sprintf("%x::wrk::", md5.Sum([]byte(hostname+fmt.Sprintf("%d", config.Port))))
+	if strings.Contains(hostname, ".") {
+		tmp := strings.SplitN(hostname, ".", 2)
+		hostname = tmp[0]
+	}
+	wrk_prefix = fmt.Sprintf("%s/%d::wrk::", hostname, config.Port)
 
 	r := &Redis{
 		ctx:       context.Background(),
