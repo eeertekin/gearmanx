@@ -25,7 +25,7 @@ func Register(fn string, ID []byte, conn net.Conn) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	storage.AddWorker(string(ID), fn)
+	storage.AddWorker(string(ID), fn, conn.RemoteAddr().String())
 
 	if workers[fn] == nil {
 		workers[fn] = make(map[string]net.Conn)

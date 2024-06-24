@@ -129,7 +129,7 @@ func (r *Redis) UnassignJobFromWorker(worker_id string, job_id string, fn string
 	}
 }
 
-func (r *Redis) AddWorker(ID, fn string) {
+func (r *Redis) AddWorker(ID, fn, remote_addr string) {
 	if !r.func_list.IsSet(fn) {
 		r.func_list.Set(fn, true)
 		r.meta.SAdd(r.ctx, "global::funcs", fn)

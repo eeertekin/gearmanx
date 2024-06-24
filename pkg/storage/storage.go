@@ -16,7 +16,7 @@ type Storage interface {
 	WaitJob(ID []byte) []byte
 	JobResult(ID, payload []byte)
 
-	AddWorker(ID, fn string)
+	AddWorker(ID, fn, remote_addr string)
 	DeleteWorker(ID, fn string)
 
 	Status() map[string]*models.FuncStatus
@@ -74,8 +74,8 @@ func GetJob(fn string) *models.Job {
 	return backend.GetJob(fn)
 }
 
-func AddWorker(ID, fn string) {
-	backend.AddWorker(ID, fn)
+func AddWorker(ID, fn, remote_addr string) {
+	backend.AddWorker(ID, fn, remote_addr)
 }
 
 func DeleteWorker(ID, fn string) {
