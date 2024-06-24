@@ -2,6 +2,7 @@ package admin
 
 import (
 	"bytes"
+	"crypto/md5"
 	"fmt"
 	"net"
 	"os"
@@ -44,17 +45,15 @@ func Shutdown(conn net.Conn) {
 }
 
 func Workers(conn net.Conn) {
-	res := map[string]string{}
+	res := workers.List()
 
-	for fn, fn_group := range workers.ListWorkers() {
-		for ID := range fn_group {
-			res[fn_group[ID].RemoteAddr().String()+":"+ID] += fn + " "
-		}
-	}
+	var tmp []string
+	var remote_addr []string
+	for wrk_id := range res {
+		tmp = strings.SplitN(wrk_id, "::wrk::", 2)
+		remote_addr = strings.SplitN(tmp[1], ":", 2)
 
-	for i := range res {
-		tmp := strings.Split(i, ":")
-		conn.Write([]byte(fmt.Sprintf("%s %s %s : %s\n", tmp[1], tmp[0], tmp[2], res[i])))
+		conn.Write([]byte(fmt.Sprintf("%s %s %x : %s\n", remote_addr[1], remote_addr[0], md5.Sum([]byte(tmp[1])), res[wrk_id])))
 	}
 
 	conn.Write([]byte(".\n"))

@@ -13,8 +13,9 @@ import (
 )
 
 type Redis struct {
-	meta *redis.Client
-	data *redis.Client
+	meta    *redis.Client
+	data    *redis.Client
+	workers *redis.Client
 
 	ctx       context.Context
 	func_list *LocalStorage
@@ -41,6 +42,10 @@ func NewRedisBackend(addr string) (*Redis, error) {
 		data: redis.NewClient(&redis.Options{
 			Addr: addr,
 			DB:   1,
+		}),
+		workers: redis.NewClient(&redis.Options{
+			Addr: addr,
+			DB:   2,
 		}),
 	}
 
@@ -138,10 +143,12 @@ func (r *Redis) AddWorker(ID, fn, remote_addr string) {
 		r.func_list.Set(fn, true)
 		r.meta.SAdd(r.ctx, "global::funcs", fn)
 	}
+	r.workers.SAdd(r.ctx, wrk_prefix+ID, fn)
 	r.meta.LPush(r.ctx, wrk_prefix+fn, ID)
 }
 
 func (r *Redis) DeleteWorker(ID, fn string) {
+	r.workers.Del(r.ctx, wrk_prefix+ID)
 	r.meta.LRem(r.ctx, wrk_prefix+fn, 1, ID)
 	key := fmt.Sprintf("wjobs::%s::%s", ID, fn)
 
@@ -186,4 +193,26 @@ func (r *Redis) JobResult(ID, payload []byte) {
 	}
 
 	r.meta.Publish(r.ctx, "job::channel::"+string(ID), payload)
+}
+
+func (r *Redis) GetWorkers() map[string]string {
+	res := map[string]string{}
+
+	workers, err := r.workers.Keys(r.ctx, "*").Result()
+	if err != nil {
+		fmt.Printf("err> %s\n", err)
+		return res
+	}
+
+	for i := range workers {
+		fns, _ := r.workers.SMembers(r.ctx, workers[i]).Result()
+		for k := range fns {
+			if _, ok := res[workers[i]]; !ok {
+				res[workers[i]] = ""
+			}
+			res[workers[i]] += fmt.Sprintf(" %s", fns[k])
+		}
+	}
+
+	return res
 }

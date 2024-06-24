@@ -43,10 +43,8 @@ func Unregister(fn string, ID []byte) {
 	storage.DeleteWorker(string(ID), fn)
 }
 
-func ListWorkers() map[string]map[string]net.Conn {
-	mutex.RLock()
-	defer mutex.RUnlock()
-	return workers
+func List() map[string]string {
+	return storage.GetWorkers()
 }
 
 func WakeUpAll(fn string) {

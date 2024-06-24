@@ -12,7 +12,7 @@ import (
 
 func init() {
 	http.HandleFunc("GET /workers", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(workers.ListWorkers())
+		json.NewEncoder(w).Encode(workers.List())
 	})
 
 	http.HandleFunc("GET /jobs", func(w http.ResponseWriter, r *http.Request) {

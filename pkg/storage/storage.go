@@ -18,6 +18,7 @@ type Storage interface {
 
 	AddWorker(ID, fn, remote_addr string)
 	DeleteWorker(ID, fn string)
+	GetWorkers() map[string]string
 
 	Status() map[string]*models.FuncStatus
 
@@ -100,4 +101,8 @@ func UnassignJobFromWorker(worker_id string, job_id string, fn string) {
 
 func UpdateWorkers(fn string, ids []string) {
 	backend.UpdateWorkers(fn, ids)
+}
+
+func GetWorkers() map[string]string {
+	return backend.GetWorkers()
 }
