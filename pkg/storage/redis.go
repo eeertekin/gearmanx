@@ -59,6 +59,11 @@ func NewRedisBackend(addr string) (*Redis, error) {
 		r.meta.Del(r.ctx, metakeys...)
 	}
 
+	worker_keys, err := r.workers.Keys(r.ctx, hostname+"::*").Result()
+	if err == nil {
+		r.workers.Del(r.ctx, worker_keys...)
+	}
+
 	return r, nil
 }
 
@@ -215,4 +220,17 @@ func (r *Redis) GetWorkers() map[string]string {
 	}
 
 	return res
+}
+
+func (r *Redis) WakeUpAll(fn string) {
+	r.workers.Publish(r.ctx, "wakeup", fn)
+}
+
+func (r *Redis) WakeUpCalls(cb func(fn string)) {
+	sub := r.workers.Subscribe(r.ctx, "wakeup")
+
+	for {
+		fn := <-sub.Channel()
+		cb(fn.Payload)
+	}
 }

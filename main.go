@@ -40,6 +40,9 @@ func main() {
 	gearmanxd.HandleSignals()
 
 	go workers.Ticker()
+	go storage.WakeUpCalls(func(fn string) {
+		workers.WakeUpAll(fn)
+	})
 
 	log.Fatal(gearmanxd.ListenAndServe())
 }

@@ -136,7 +136,7 @@ func SubmitJob(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 		ID:      ID,
 		Payload: Payload,
 	})
-	go workers.WakeUpAll(Fn)
+	go storage.WakeUpAll(Fn)
 
 	result := storage.WaitJob(ID)
 
@@ -205,6 +205,6 @@ func SubmitJobBg(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	})
 
 	debounced(func() {
-		workers.WakeUpAll(Fn)
+		storage.WakeUpAll(Fn)
 	})
 }

@@ -13,12 +13,6 @@ import (
 	"gearmanx/pkg/workers"
 )
 
-func WakeUpAll() {
-	for _, fn := range storage.GetFuncs() {
-		workers.WakeUpAll(fn)
-	}
-}
-
 func Status(conn net.Conn) {
 	fns := storage.Status()
 
@@ -60,11 +54,6 @@ func Workers(conn net.Conn) {
 }
 
 func Handle(conn net.Conn, buf []byte) bool {
-	if bytes.HasPrefix(buf, []byte("wakeup")) {
-		WakeUpAll()
-		return true
-	}
-
 	if bytes.HasPrefix(buf, []byte("status")) {
 		Status(conn)
 		return true
