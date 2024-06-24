@@ -61,6 +61,7 @@ func (r *Redis) Close() {
 func (r *Redis) AddJob(job *models.Job) error {
 	if !r.func_list.IsSet(job.Func) {
 		r.func_list.Set(job.Func, true)
+		r.meta.SAdd(r.ctx, "global::funcs", job.Func)
 	}
 
 	r.data.Set(r.ctx, string(job.ID), job.Payload, -1)
@@ -131,6 +132,7 @@ func (r *Redis) UnassignJobFromWorker(worker_id string, job_id string, fn string
 func (r *Redis) AddWorker(ID, fn string) {
 	if !r.func_list.IsSet(fn) {
 		r.func_list.Set(fn, true)
+		r.meta.SAdd(r.ctx, "global::funcs", fn)
 	}
 	r.meta.LPush(r.ctx, wrk_prefix+fn, ID)
 }
@@ -151,7 +153,12 @@ func (r *Redis) DeleteWorker(ID, fn string) {
 }
 
 func (r *Redis) GetFuncs() []string {
-	return r.func_list.GetKeys()
+	// return r.func_list.GetKeys()
+	res, err := r.meta.SMembers(r.ctx, "global::funcs").Result()
+	if err != nil {
+		return nil
+	}
+	return res
 }
 
 func (r *Redis) UpdateWorkers(fn string, ids []string) {
