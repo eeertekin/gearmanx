@@ -23,7 +23,7 @@ func Status(conn net.Conn) {
 	sort.Strings(ordered_fns)
 
 	for _, i := range ordered_fns {
-		conn.Write([]byte(fmt.Sprintf("%s\t\t%d\t%d\t%d\n", fns[i].Name, fns[i].Jobs, fns[i].InProgress, fns[i].Workers)))
+		conn.Write([]byte(fmt.Sprintf("%s\t%d\t%d\t%d\n", fns[i].Name, fns[i].Jobs, fns[i].InProgress, fns[i].Workers)))
 	}
 	conn.Write([]byte(".\n"))
 }
