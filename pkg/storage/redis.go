@@ -127,7 +127,7 @@ func (r *Redis) Status() map[string]*models.FuncStatus {
 
 func (r *Redis) DeleteJob(ID []byte) error {
 	for _, fn := range r.GetFuncs() {
-		r.meta.LRem(r.ctx, "inprogress::"+fn, 1, ID)
+		r.meta.LRem(r.ctx, "inprogress::"+fn, 0, ID)
 	}
 
 	return r.data.Expire(r.ctx, string(ID), time.Second).Err()
