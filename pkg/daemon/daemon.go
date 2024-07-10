@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 type GearmanX struct {
@@ -44,9 +45,9 @@ func (g *GearmanX) HandleSignals() {
 	go func() {
 		<-c
 		g.shutting_down = true
+		fmt.Printf("[shutdown] socket closed for new connections\n")
 
-		fmt.Printf("Shutting down .... \n\n")
-
+		fmt.Printf("[shutdown] cleaning process .... started\n")
 		for _, fn := range storage.GetFuncs() {
 			for _, wID := range workers.GetWorkerIDs(fn) {
 				fmt.Printf("[shutdown] Closing worker connection #%s\n", wID)
@@ -55,7 +56,13 @@ func (g *GearmanX) HandleSignals() {
 			}
 		}
 
+		fmt.Printf("[shutdown] worker sockets closed\n")
+		time.Sleep(1 * time.Second)
+
 		g.Close()
+		fmt.Printf("[shutdown] socket closed\n")
+
+		fmt.Printf("[shutdown] exiting with status 1\n")
 		os.Exit(1)
 	}()
 
@@ -79,7 +86,7 @@ func (g *GearmanX) ListenAndServe() (err error) {
 
 		conn, err = g.socket.Accept()
 		if err != nil {
-			fmt.Println("Error accepting: ", err.Error())
+			// fmt.Println("Error accepting: ", err.Error())
 			continue
 		}
 
