@@ -139,7 +139,7 @@ func (r *Redis) AssignJobToWorker(worker_id string, job_id string, fn string) {
 
 func (r *Redis) UnassignJobFromWorker(worker_id string, job_id string, fn string) {
 	for _, fn := range r.GetFuncs() {
-		r.meta.LRem(r.ctx, fmt.Sprintf("wjobs::%s::%s", worker_id, fn), 1, job_id)
+		r.meta.LRem(r.ctx, fmt.Sprintf("wjobs::%s::%s", worker_id, fn), 0, job_id)
 	}
 }
 
@@ -154,14 +154,14 @@ func (r *Redis) AddWorker(ID, fn, remote_addr string) {
 
 func (r *Redis) DeleteWorker(ID, fn string) {
 	r.workers.Del(r.ctx, wrk_prefix+ID)
-	r.meta.LRem(r.ctx, wrk_prefix+fn, 1, ID)
+	r.meta.LRem(r.ctx, wrk_prefix+fn, 0, ID)
 	key := fmt.Sprintf("wjobs::%s::%s", ID, fn)
 
 	// Move assigned jobs from worker to queue
 	if count, _ := r.meta.LLen(r.ctx, key).Result(); count > 0 {
 		assigned_jobs, _ := r.meta.LRange(r.ctx, key, 0, -1).Result()
 		for i := range assigned_jobs {
-			r.meta.LRem(r.ctx, "inprogress::"+fn, 1, assigned_jobs[i])
+			r.meta.LRem(r.ctx, "inprogress::"+fn, 0, assigned_jobs[i])
 			r.meta.LPush(r.ctx, "fn::"+fn, assigned_jobs[i])
 		}
 		r.meta.Del(r.ctx, key)
