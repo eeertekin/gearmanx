@@ -95,6 +95,7 @@ func (r *Redis) GetJob(fn string) (job *models.Job) {
 
 	payload, err := r.data.Get(r.ctx, ID).Result()
 	if err != nil {
+		r.meta.LRem(r.ctx, "inprogress::"+fn, 0, ID).Err()
 		return nil
 	}
 
