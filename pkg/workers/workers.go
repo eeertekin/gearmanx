@@ -20,6 +20,10 @@ func init() {
 
 var mutex sync.RWMutex
 
+func Close(ID, fn string) {
+	workers[fn][ID].Close()
+}
+
 func Register(fn string, ID []byte, conn net.Conn) {
 	// fmt.Printf("[worker-register] Register %s from %s\n", ID, fn)
 	mutex.Lock()

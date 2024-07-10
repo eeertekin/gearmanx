@@ -49,6 +49,8 @@ func (g *GearmanX) HandleSignals() {
 
 		for _, fn := range storage.GetFuncs() {
 			for _, wID := range workers.GetWorkerIDs(fn) {
+				fmt.Printf("[shutdown] Closing worker connection #%s\n", wID)
+				workers.Close(wID, fn)
 				storage.DeleteWorker(wID, fn)
 			}
 		}
