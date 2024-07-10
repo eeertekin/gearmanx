@@ -59,12 +59,16 @@ func NewRedisBackend(addr string) (*Redis, error) {
 		r.meta.Del(r.ctx, metakeys...)
 	}
 
-	worker_keys, err := r.workers.Keys(r.ctx, hostname+"::*").Result()
-	if err == nil {
-		r.workers.Del(r.ctx, worker_keys...)
-	}
+	r.ClearWorkers()
 
 	return r, nil
+}
+
+func (r *Redis) ClearWorkers() {
+	worker_keys, _ := r.workers.Keys(r.ctx, hostname+"::*").Result()
+	for i := range worker_keys {
+		r.workers.Del(r.ctx, worker_keys[i])
+	}
 }
 
 func (r *Redis) Close() {

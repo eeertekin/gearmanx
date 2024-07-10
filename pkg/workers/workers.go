@@ -1,7 +1,6 @@
 package workers
 
 import (
-	"fmt"
 	"gearmanx/pkg/command"
 	"gearmanx/pkg/consts"
 	"gearmanx/pkg/storage"
@@ -42,7 +41,7 @@ func Unregister(fn string, ID []byte) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	fmt.Printf("[worker-unregister] Purge %s from %s\n", ID, fn)
+	// fmt.Printf("[worker-unregister] Purge %s from %s\n", ID, fn)
 	delete(workers[fn], string(ID))
 	storage.DeleteWorker(string(ID), fn)
 }

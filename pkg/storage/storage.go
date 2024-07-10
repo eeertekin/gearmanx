@@ -30,6 +30,7 @@ type Storage interface {
 	UnassignJobFromWorker(worker_id string, job_id string, fn string)
 
 	UpdateWorkers(fn string, ids []string)
+	ClearWorkers()
 }
 
 func NewStorage(uri string) error {
@@ -115,4 +116,8 @@ func WakeUpAll(fn string) {
 
 func WakeUpCalls(cb func(fn string)) {
 	backend.WakeUpCalls(cb)
+}
+
+func ClearWorkers() {
+	backend.ClearWorkers()
 }

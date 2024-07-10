@@ -62,6 +62,8 @@ func (g *GearmanX) HandleSignals() {
 		g.Close()
 		fmt.Printf("[shutdown] socket closed\n")
 
+		storage.ClearWorkers()
+
 		fmt.Printf("[shutdown] exiting with status 1\n")
 		os.Exit(1)
 	}()

@@ -29,7 +29,7 @@ func init() {
 		sort.Strings(ordered_fns)
 
 		for _, i := range ordered_fns {
-			w.Write([]byte(fmt.Sprintf("%s\t\t%d\t%d\t%d\n", fns[i].Name, fns[i].Jobs, fns[i].InProgress, fns[i].Workers)))
+			w.Write([]byte(fmt.Sprintf("%s\t%d\t%d\t%d\n", fns[i].Name, fns[i].Jobs, fns[i].InProgress, fns[i].Workers)))
 		}
 		w.Write([]byte(".\n"))
 	})
