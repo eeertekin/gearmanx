@@ -14,11 +14,19 @@ import (
 	"time"
 )
 
-var debounced func(f func())
 var fn_router map[int]func(conn net.Conn, iam *models.IAM, cmd *command.Command)
 
+var job_debounce_map map[string]func(f func())
+
+func job_debounce(fn string, f func()) {
+	if _, ok := job_debounce_map[fn]; !ok {
+		job_debounce_map[fn] = debounce.New(200 * time.Millisecond)
+	}
+	job_debounce_map[fn](f)
+}
+
 func init() {
-	debounced = debounce.New(100 * time.Millisecond)
+	job_debounce_map = make(map[string]func(f func()))
 
 	fn_router = map[int]func(conn net.Conn, iam *models.IAM, cmd *command.Command){
 		// General
@@ -204,7 +212,7 @@ func SubmitJobBg(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 		Payload: Payload,
 	})
 
-	debounced(func() {
+	job_debounce(Fn, func() {
 		storage.WakeUpAll(Fn)
 	})
 }
