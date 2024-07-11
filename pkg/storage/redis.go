@@ -22,6 +22,7 @@ type Redis struct {
 }
 
 var wrk_prefix string
+var wrk_job_prefix string
 var hostname string
 
 func NewRedisBackend(addr string) (*Redis, error) {
@@ -31,6 +32,7 @@ func NewRedisBackend(addr string) (*Redis, error) {
 		hostname = tmp[0]
 	}
 	wrk_prefix = fmt.Sprintf("%s/%d::wrk::", hostname, config.Port)
+	wrk_job_prefix = fmt.Sprintf("%s/%d::wrk::jobs::", hostname, config.Port)
 
 	r := &Redis{
 		ctx:       context.Background(),
@@ -139,12 +141,12 @@ func (r *Redis) DeleteJob(ID []byte) error {
 }
 
 func (r *Redis) AssignJobToWorker(worker_id string, job_id string, fn string) {
-	r.meta.LPush(r.ctx, fmt.Sprintf("wjobs::%s::%s", worker_id, fn), job_id)
+	r.meta.LPush(r.ctx, fmt.Sprintf("%s%s::%s", wrk_job_prefix, worker_id, fn), job_id)
 }
 
 func (r *Redis) UnassignJobFromWorker(worker_id string, job_id string, fn string) {
 	for _, fn := range r.GetFuncs() {
-		r.meta.LRem(r.ctx, fmt.Sprintf("wjobs::%s::%s", worker_id, fn), 0, job_id)
+		r.meta.LRem(r.ctx, fmt.Sprintf("%s%s::%s", wrk_job_prefix, worker_id, fn), 0, job_id)
 	}
 }
 
@@ -160,17 +162,17 @@ func (r *Redis) AddWorker(ID, fn, remote_addr string) {
 func (r *Redis) DeleteWorker(ID, fn string) {
 	r.workers.Del(r.ctx, wrk_prefix+ID)
 	r.meta.LRem(r.ctx, wrk_prefix+fn, 0, ID)
-	key := fmt.Sprintf("wjobs::%s::%s", ID, fn)
+	key := fmt.Sprintf("%s%s::%s", wrk_job_prefix, ID, fn)
 
 	// Move assigned jobs from worker to queue
 	if count, _ := r.meta.LLen(r.ctx, key).Result(); count > 0 {
 		assigned_jobs, _ := r.meta.LRange(r.ctx, key, 0, -1).Result()
 		for i := range assigned_jobs {
 			r.meta.LRem(r.ctx, "inprogress::"+fn, 0, assigned_jobs[i])
-			r.meta.LPush(r.ctx, "fn::"+fn, assigned_jobs[i])
+			r.meta.LPush(r.ctx, "failed::"+fn, assigned_jobs[i])
 		}
-		r.meta.Del(r.ctx, key)
 	}
+	r.meta.Del(r.ctx, key)
 }
 
 func (r *Redis) GetFuncs() []string {
