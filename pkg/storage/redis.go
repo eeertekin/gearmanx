@@ -190,6 +190,7 @@ func (r *Redis) UpdateWorkers(fn string, ids []string) {
 
 func (r *Redis) WaitJob(ID []byte) []byte {
 	sub := r.meta.Subscribe(r.ctx, "job::channel::"+string(ID))
+	defer sub.Close()
 	msg := <-sub.Channel()
 
 	return []byte(msg.Payload)
@@ -233,9 +234,10 @@ func (r *Redis) WakeUpAll(fn string) {
 
 func (r *Redis) WakeUpCalls(cb func(fn string)) {
 	sub := r.workers.Subscribe(r.ctx, "wakeup")
+	ch := sub.Channel()
 
-	for {
-		fn := <-sub.Channel()
+	var fn *redis.Message
+	for fn = range ch {
 		cb(fn.Payload)
 	}
 }
