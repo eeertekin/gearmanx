@@ -67,7 +67,7 @@ func NewRedisBackend(addr string) (*Redis, error) {
 }
 
 func (r *Redis) ClearWorkers() {
-	worker_keys, _ := r.workers.Keys(r.ctx, hostname+"::*").Result()
+	worker_keys, _ := r.workers.Keys(r.ctx, fmt.Sprintf("%s/%d::wrk::*", hostname, config.Port)).Result()
 	for i := range worker_keys {
 		r.workers.Del(r.ctx, worker_keys[i])
 	}
@@ -84,7 +84,7 @@ func (r *Redis) AddJob(job *models.Job) error {
 		r.meta.SAdd(r.ctx, "global::funcs", job.Func)
 	}
 
-	r.data.Set(r.ctx, string(job.ID), job.Payload, -1)
+	r.data.Set(r.ctx, string(job.ID), job.Payload, 6*time.Hour)
 
 	return r.meta.LPush(r.ctx, "fn::"+job.Func, job.ID).Err()
 }
