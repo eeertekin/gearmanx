@@ -39,9 +39,11 @@ func init() {
 		consts.RESET_ABILITIES: ResetAbilities,
 		consts.CANT_DO:         CanNotDo,
 		consts.PRE_SLEEP:       PreSleep,
-		consts.WORK_COMPLETE:   WorkComplete,
 		consts.GRAB_JOB:        GrabJob,
 		consts.GRAB_JOB_ALL:    GrabJob,
+		consts.WORK_COMPLETE:   WorkComplete,
+		consts.WORK_FAIL:       WorkFailed,
+		consts.WORK_EXCEPTION:  WorkComplete,
 
 		// Client
 		consts.SUBMIT_JOB:      SubmitJob,
@@ -215,4 +217,23 @@ func SubmitJobBg(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	job_debounce(Fn, func() {
 		storage.WakeUpAll(Fn)
 	})
+}
+
+func WorkException(conn net.Conn, iam *models.IAM, cmd *command.Command) {
+	ID, payload := cmd.ParseResult()
+	fmt.Printf("[worker] Work Exception - Result : %s => %s\n", ID, payload)
+
+	storage.DeleteJob(cmd.Data)
+	storage.UnassignJobFromWorker(iam.ID, string(cmd.Data), "all")
+
+	storage.JobResult(cmd.Data, []byte("gearman: exception"))
+}
+
+func WorkFailed(conn net.Conn, iam *models.IAM, cmd *command.Command) {
+	ID := cmd.Data
+	fmt.Printf("[worker] Work failed - Result : %s => %s\n", ID, "failed")
+
+	storage.DeleteJob(ID)
+	storage.UnassignJobFromWorker(iam.ID, string(ID), "all")
+	storage.JobResult(ID, []byte{})
 }
