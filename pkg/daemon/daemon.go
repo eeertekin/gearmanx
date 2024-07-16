@@ -92,6 +92,12 @@ func (g *GearmanX) ListenAndServe() (err error) {
 			continue
 		}
 
+		// TODO: On shutdown process, 1 new connection is still able to reach because of Accept() block the loop, find a better way to bypass it
+		if g.shutting_down {
+			conn.Close()
+			break
+		}
+
 		go g.Handler(conn)
 	}
 
