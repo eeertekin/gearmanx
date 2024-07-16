@@ -151,6 +151,12 @@ func (r *Redis) Status() map[string]*models.FuncStatus {
 				count, _ = r.meta.LLen(r.ctx, allwrks[i]).Result()
 				f.Workers += count
 			}
+
+			if f.Jobs >= f.Workers {
+				f.InProgress = f.Workers
+			} else {
+				f.InProgress = f.Jobs
+			}
 		}(res[fn])
 	}
 
@@ -250,8 +256,9 @@ func (r *Redis) GetWorkers() map[string]string {
 			if _, ok := res[workers[i]]; !ok {
 				res[workers[i]] = ""
 			}
-			res[workers[i]] += fmt.Sprintf(" %s", fns[k])
+			res[workers[i]] += fmt.Sprintf("%s ", fns[k])
 		}
+		res[workers[i]] = strings.Trim(res[workers[i]], " ")
 	}
 
 	return res
