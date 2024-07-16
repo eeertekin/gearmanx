@@ -110,16 +110,16 @@ func (r *Redis) GetJob(fn string) (job *models.Job) {
 	}
 }
 
-func (r *Redis) GetJobSync(ctx context.Context, fn string) (job *models.Job) {
-	ID, err := r.meta.BLMove(ctx, "fn::"+fn, "inprogress::"+fn, "RIGHT", "LEFT", 0).Result()
+func (r *Redis) GetJobSync(fn string) (job *models.Job) {
+	ID, err := r.meta.BLMove(r.ctx, "fn::"+fn, "inprogress::"+fn, "RIGHT", "LEFT", 0).Result()
 	// ID, err := r.meta.BRPopLPush(r.ctx, "fn::"+fn, "inprogress::"+fn, 60*time.Second).Result()
 	if err != nil {
 		return nil
 	}
 
-	payload, err := r.data.Get(ctx, ID).Result()
+	payload, err := r.data.Get(r.ctx, ID).Result()
 	if err != nil {
-		r.meta.LRem(ctx, "inprogress::"+fn, 0, ID).Err()
+		r.meta.LRem(r.ctx, "inprogress::"+fn, 0, ID).Err()
 		return nil
 	}
 
