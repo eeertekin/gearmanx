@@ -77,6 +77,7 @@ func (r *Redis) ClearWorkers() {
 func (r *Redis) Close() {
 	r.meta.Close()
 	r.data.Close()
+	r.workers.Close()
 }
 
 func (r *Redis) AddJob(job *models.Job) error {
