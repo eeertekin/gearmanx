@@ -13,6 +13,8 @@ type Storage interface {
 	AddJob(job *models.Job) error
 	DeleteJob(ID []byte) error
 	GetJob(fn string) *models.Job
+	GetJobSync(fn string) *models.Job
+
 	WaitJob(ID []byte) []byte
 	JobResult(ID, payload []byte)
 
@@ -120,4 +122,8 @@ func WakeUpCalls(cb func(fn string)) {
 
 func ClearWorkers() {
 	backend.ClearWorkers()
+}
+
+func GetJobSync(fn string) *models.Job {
+	return backend.GetJobSync(fn)
 }
