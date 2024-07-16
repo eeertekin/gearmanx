@@ -57,7 +57,7 @@ func NewRedisBackend(addr string) (*Redis, error) {
 		return nil, err
 	}
 
-	metakeys, err := r.meta.Keys(r.ctx, hostname+"::*").Result()
+	metakeys, err := r.meta.Keys(r.ctx, hostname+"*").Result()
 	if err == nil {
 		r.meta.Del(r.ctx, metakeys...)
 	}
