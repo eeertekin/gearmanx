@@ -41,6 +41,7 @@ func init() {
 		consts.PRE_SLEEP:       PreSleep,
 		consts.GRAB_JOB:        GrabJob,
 		consts.GRAB_JOB_ALL:    GrabJob,
+		consts.GRAB_JOB_UNIQ:   GrabJobUnique,
 		consts.WORK_COMPLETE:   WorkComplete,
 		consts.WORK_FAIL:       WorkFailed,
 		consts.WORK_EXCEPTION:  WorkComplete,
@@ -193,6 +194,37 @@ func GrabJob(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 		consts.JOB_ASSIGN,
 		job.ID, consts.NULLTERM,
 		[]byte(job.Func), consts.NULLTERM,
+		[]byte(job.Payload),
+	))
+
+	storage.AssignJobToWorker(iam.ID, string(job.ID), job.Func)
+}
+
+func GrabJobUnique(conn net.Conn, iam *models.IAM, cmd *command.Command) {
+	// fmt.Printf("[worker] Grab Job requested\n")
+	// fmt.Printf("Hello IAM %s and able to do %#v\n", iam.Type, iam.Functions)
+
+	var job *models.Job
+	for _, fn := range iam.Functions {
+		job = storage.GetJob(fn)
+		if job != nil {
+			break
+		}
+	}
+
+	if job == nil {
+		// fmt.Printf("No job found\n")
+		conn.Write(command.Response(
+			consts.NO_JOB,
+		))
+		return
+	}
+
+	conn.Write(command.Response(
+		consts.JOB_ASSIGN_UNIQ,
+		job.ID, consts.NULLTERM,
+		[]byte(job.Func), consts.NULLTERM,
+		[]byte(job.ID), consts.NULLTERM,
 		[]byte(job.Payload),
 	))
 
