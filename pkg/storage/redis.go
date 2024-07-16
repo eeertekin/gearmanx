@@ -265,11 +265,15 @@ func (r *Redis) GetWorkers() map[string]string {
 }
 
 func (r *Redis) WakeUpAll(fn string) {
-	r.workers.Publish(r.ctx, "wakeup", fn)
+	err := r.workers.Publish(r.ctx, "wakeup", fn).Err()
+	if err != nil {
+		fmt.Printf("[wake-up-all] err> %s\n", err)
+	}
 }
 
 func (r *Redis) WakeUpCalls(cb func(fn string)) {
 	sub := r.workers.Subscribe(r.ctx, "wakeup")
+	defer sub.Close()
 	ch := sub.Channel()
 
 	var fn *redis.Message
