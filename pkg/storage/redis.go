@@ -227,13 +227,11 @@ func (r *Redis) AssignJobToWorker(worker_id string, job_id string, fn string) {
 }
 
 func (r *Redis) UnassignJobFromWorker(worker_id string, job_id string, fn string) {
-	var count int64
+	pipe := r.meta.Pipeline()
 	for _, fn := range r.GetFuncs() {
-		count = r.meta.LRem(r.ctx, fmt.Sprintf("%s%s::%s", wrk_job_prefix, worker_id, fn), 0, job_id).Val()
-		if count > 0 {
-			break
-		}
+		pipe.LRem(r.ctx, fmt.Sprintf("%s%s::%s", wrk_job_prefix, worker_id, fn), 0, job_id)
 	}
+	go pipe.Exec(r.ctx)
 }
 
 func (r *Redis) AddWorker(ID, fn, remote_addr string) {
