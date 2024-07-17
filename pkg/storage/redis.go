@@ -204,15 +204,20 @@ func (r *Redis) StatusUpdate() {
 }
 
 func (r *Redis) DeleteJob(ID []byte) error {
-	var count int64
-	for _, fn := range r.GetFuncs() {
-		count, _ = r.meta.LRem(r.ctx, "inprogress::"+fn, 0, ID).Result()
-		if count > 0 {
-			break
+	fn := r.job_meta.Get(r.ctx, string(ID)).Val()
+	if fn == "" {
+		fmt.Printf("[storage.DeleteJob] %s\n", fn)
+		var count int64
+		for _, fnx := range r.GetFuncs() {
+			if count = r.meta.LRem(r.ctx, "inprogress::"+fnx, 0, string(ID)).Val(); count > 0 {
+				break
+			}
 		}
+	} else {
+		go r.meta.LRem(r.ctx, "inprogress::"+fn, 0, ID).Err()
 	}
 
-	r.job_meta.Expire(r.ctx, string(ID), time.Second).Err()
+	go r.job_meta.Expire(r.ctx, string(ID), time.Second).Err()
 
 	return r.data.Expire(r.ctx, string(ID), time.Second).Err()
 }
@@ -224,7 +229,7 @@ func (r *Redis) AssignJobToWorker(worker_id string, job_id string, fn string) {
 func (r *Redis) UnassignJobFromWorker(worker_id string, job_id string, fn string) {
 	var count int64
 	for _, fn := range r.GetFuncs() {
-		count, _ = r.meta.LRem(r.ctx, fmt.Sprintf("%s%s::%s", wrk_job_prefix, worker_id, fn), 0, job_id).Result()
+		count = r.meta.LRem(r.ctx, fmt.Sprintf("%s%s::%s", wrk_job_prefix, worker_id, fn), 0, job_id).Val()
 		if count > 0 {
 			break
 		}
