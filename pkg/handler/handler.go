@@ -167,9 +167,9 @@ func SubmitJob(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 
 func WorkComplete(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	ID, payload := cmd.ParseResult()
-	storage.DeleteJob(ID)
 
-	storage.UnassignJobFromWorker(iam.ID, string(ID), "all")
+	fn := storage.DeleteJob(ID)
+	storage.UnassignJobFromWorker(iam.ID, string(ID), fn)
 	// fmt.Printf("[worker] Work completed - Result : %s => %s\n", ID, Payload)
 
 	storage.JobResult(ID, payload)
@@ -260,8 +260,8 @@ func WorkException(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	ID, payload := cmd.ParseResult()
 	fmt.Printf("[worker] Work Exception - Result : %s => %s\n", ID, payload)
 
-	storage.DeleteJob(cmd.Data)
-	storage.UnassignJobFromWorker(iam.ID, string(cmd.Data), "all")
+	fn := storage.DeleteJob(cmd.Data)
+	storage.UnassignJobFromWorker(iam.ID, string(cmd.Data), fn)
 
 	storage.JobResult(cmd.Data, []byte("gearman: exception"))
 }
@@ -270,7 +270,7 @@ func WorkFailed(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	ID := cmd.Data
 	fmt.Printf("[worker] Work failed - Result : %s => %s\n", ID, "failed")
 
-	storage.DeleteJob(ID)
-	storage.UnassignJobFromWorker(iam.ID, string(ID), "all")
+	fn := storage.DeleteJob(ID)
+	storage.UnassignJobFromWorker(iam.ID, string(ID), fn)
 	storage.JobResult(ID, []byte{})
 }

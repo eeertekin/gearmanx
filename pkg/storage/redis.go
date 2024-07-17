@@ -200,12 +200,12 @@ func (r *Redis) StatusUpdate() {
 	wg.Wait()
 }
 
-func (r *Redis) DeleteJob(ID []byte) error {
+func (r *Redis) DeleteJob(ID []byte) string {
 	fn := r.jobs.HGet(r.ctx, string(ID), "fn").Val()
 	go r.jobs.Del(r.ctx, string(ID))
 	go r.meta.LRem(r.ctx, "inprogress::"+fn, 0, ID)
 
-	return nil
+	return fn
 }
 
 func (r *Redis) AssignJobToWorker(worker_id string, job_id string, fn string) {
@@ -213,11 +213,7 @@ func (r *Redis) AssignJobToWorker(worker_id string, job_id string, fn string) {
 }
 
 func (r *Redis) UnassignJobFromWorker(worker_id string, job_id string, fn string) {
-	pipe := r.meta.Pipeline()
-	for _, fn := range r.GetFuncs() {
-		pipe.LRem(r.ctx, fmt.Sprintf("%s%s::%s", wrk_job_prefix, worker_id, fn), 0, job_id)
-	}
-	go pipe.Exec(r.ctx)
+	r.meta.LRem(r.ctx, fmt.Sprintf("%s%s::%s", wrk_job_prefix, worker_id, fn), 0, job_id)
 }
 
 func (r *Redis) AddWorker(ID, fn, remote_addr string) {

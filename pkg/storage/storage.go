@@ -11,7 +11,7 @@ type Storage interface {
 	Close()
 
 	AddJob(job *models.Job) error
-	DeleteJob(ID []byte) error
+	DeleteJob(ID []byte) string
 	GetJob(fn string) *models.Job
 	GetJobSync(fn string) *models.Job
 
@@ -75,7 +75,7 @@ func JobResult(ID, payload []byte) {
 	backend.JobResult(ID, payload)
 }
 
-func DeleteJob(ID []byte) error {
+func DeleteJob(ID []byte) string {
 	return backend.DeleteJob(ID)
 }
 
