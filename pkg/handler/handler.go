@@ -11,6 +11,7 @@ import (
 	"gearmanx/pkg/utils"
 	"gearmanx/pkg/workers"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -18,7 +19,12 @@ var fn_router map[int]func(conn net.Conn, iam *models.IAM, cmd *command.Command)
 
 var job_debounce_map map[string]func(f func())
 
+var mutex sync.Mutex
+
 func job_debounce(fn string, f func()) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	if _, ok := job_debounce_map[fn]; !ok {
 		job_debounce_map[fn] = debounce.New(200 * time.Millisecond)
 	}
