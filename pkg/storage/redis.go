@@ -6,6 +6,7 @@ import (
 	"gearmanx/pkg/config"
 	"gearmanx/pkg/models"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -142,14 +143,38 @@ func (r *Redis) GetJobSync(fn string) (job *models.Job) {
 func (r *Redis) Status() map[string]*models.FuncStatus {
 	res := map[string]*models.FuncStatus{}
 
+	resx, _ := r.meta.HGetAll(r.ctx, "status").Result()
+
+	var tmp []string
+	for fn, val := range resx {
+		tmp = strings.Split(fn, "::")
+		if _, ok := res[tmp[0]]; !ok {
+			res[tmp[0]] = &models.FuncStatus{
+				Name: tmp[0],
+			}
+		}
+		switch tmp[1] {
+		case "jobs":
+			res[tmp[0]].Jobs, _ = strconv.ParseInt(val, 10, 32)
+		case "workers":
+			res[tmp[0]].Workers, _ = strconv.ParseInt(val, 10, 32)
+		case "inprogress":
+			res[tmp[0]].InProgress, _ = strconv.ParseInt(val, 10, 32)
+		}
+	}
+
+	return res
+}
+
+func (r *Redis) StatusUpdate() {
 	wg := sync.WaitGroup{}
 	for _, fn := range r.GetFuncs() {
 		wg.Add(1)
-		res[fn] = &models.FuncStatus{
-			Name: fn,
-		}
-		go func(f *models.FuncStatus) {
+		go func(fn string) {
 			defer wg.Done()
+			f := models.FuncStatus{
+				Name: fn,
+			}
 			f.InProgress, _ = r.meta.LLen(r.ctx, "inprogress::"+fn).Result()
 			f.Jobs, _ = r.meta.LLen(r.ctx, "fn::"+fn).Result()
 			f.Jobs += f.InProgress
@@ -166,12 +191,16 @@ func (r *Redis) Status() map[string]*models.FuncStatus {
 			} else {
 				f.InProgress = f.Jobs
 			}
-		}(res[fn])
+
+			r.meta.HSet(r.ctx, "status",
+				f.Name+"::jobs", f.Jobs,
+				f.Name+"::inprogress", f.InProgress,
+				f.Name+"::workers", f.Workers,
+			)
+		}(fn)
 	}
 
 	wg.Wait()
-
-	return res
 }
 
 func (r *Redis) DeleteJob(ID []byte) error {

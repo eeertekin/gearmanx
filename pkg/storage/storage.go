@@ -23,6 +23,8 @@ type Storage interface {
 	GetWorkers() map[string]string
 
 	Status() map[string]*models.FuncStatus
+	StatusUpdate()
+
 	WakeUpAll(fn string)
 	WakeUpCalls(func(fn string))
 
@@ -126,4 +128,8 @@ func ClearWorkers() {
 
 func GetJobSync(fn string) *models.Job {
 	return backend.GetJobSync(fn)
+}
+
+func StatusUpdate() {
+	backend.StatusUpdate()
 }

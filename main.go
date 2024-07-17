@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 
 	"gearmanx/pkg/admin"
 	"gearmanx/pkg/clients"
@@ -43,6 +44,13 @@ func main() {
 	go storage.WakeUpCalls(func(fn string) {
 		workers.WakeUpAll(fn)
 	})
+
+	go func() {
+		status_ticker := time.NewTicker(1000 * time.Millisecond)
+		for range status_ticker.C {
+			storage.StatusUpdate()
+		}
+	}()
 
 	log.Fatal(gearmanxd.ListenAndServe())
 }
