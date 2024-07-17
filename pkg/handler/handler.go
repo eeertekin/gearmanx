@@ -59,6 +59,10 @@ func init() {
 
 func Run(conn net.Conn, iam *models.IAM, cmd *command.Command) bool {
 	if _, ok := fn_router[cmd.Task]; !ok {
+		// TODO: Parse error?
+		if consts.String(cmd.Task) == "" {
+			return false
+		}
 		fmt.Printf("[unknown] %s requested with (%s)\n", consts.String(cmd.Task), cmd.Data)
 		return false
 	}
