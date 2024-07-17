@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"gearmanx/pkg/config"
 	"gearmanx/pkg/models"
@@ -99,7 +100,7 @@ func (r *Redis) AddJob(job *models.Job) error {
 }
 
 func (r *Redis) GetJob(fn string) (job *models.Job) {
-	ID, err := r.meta.RPopLPush(r.ctx, "fn::"+fn, "inprogress::"+fn).Result()
+	ID, err := r.meta.LMove(r.ctx, "fn::"+fn, "inprogress::"+fn, "RIGHT", "LEFT").Result()
 	if err != nil {
 		return nil
 	}
