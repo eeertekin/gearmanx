@@ -59,8 +59,15 @@ func init() {
 
 func Run(conn net.Conn, iam *models.IAM, cmd *command.Command) bool {
 	if _, ok := fn_router[cmd.Task]; !ok {
-		// TODO: Parse error?
+		conn.Write(command.Response(
+			consts.ERROR,
+			[]byte("GEARMAN_UNKNOWN_OPTION"), consts.NULLTERM,
+			[]byte("not implemented"),
+		))
+
 		if consts.String(cmd.Task) == "" {
+			fmt.Printf("[unknown] TaskID %s requested (%s)\n", cmd.Task, consts.String(cmd.Task))
+			conn.Close()
 			return false
 		}
 		fmt.Printf("[unknown] %s requested with (%s)\n", consts.String(cmd.Task), cmd.Data)
@@ -100,7 +107,7 @@ func ResetAbilities(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	if iam.Role != consts.ROLE_WORKER {
 		conn.Write(command.Response(
 			consts.ERROR,
-			[]byte("not_available"), consts.NULLTERM,
+			[]byte("GEARMAN_UNKNOWN_OPTION"), consts.NULLTERM,
 			[]byte("worker method requested"),
 		))
 		return
@@ -115,7 +122,7 @@ func CanNotDo(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	if iam.Role != consts.ROLE_WORKER {
 		conn.Write(command.Response(
 			consts.ERROR,
-			[]byte("not_available"), consts.NULLTERM,
+			[]byte("GEARMAN_UNKNOWN_OPTION"), consts.NULLTERM,
 			[]byte("worker method requested"),
 		))
 		return
@@ -140,12 +147,20 @@ func PreSleep(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 func SubmitJob(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	handlerID := utils.NextHandlerID()
 
+	ID, Fn, Payload := cmd.ParsePayload()
+	if Fn == "" {
+		conn.Write(command.Response(
+			consts.ERROR,
+			[]byte("GEARMAN_INVALID_FUNCTION_NAME"), consts.NULLTERM,
+			[]byte("fn can not be empty"),
+		))
+		return
+	}
+
 	conn.Write(command.Response(
 		consts.JOB_CREATED,
 		handlerID,
 	))
-
-	ID, Fn, Payload := cmd.ParsePayload()
 
 	storage.AddJob(&models.Job{
 		Func:    Fn,
@@ -239,12 +254,21 @@ func GrabJobUnique(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 func SubmitJobBg(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	handlerID := utils.NextHandlerID()
 
+	ID, Fn, Payload := cmd.ParsePayload()
+	if Fn == "" {
+		conn.Write(command.Response(
+			consts.ERROR,
+			[]byte("GEARMAN_INVALID_FUNCTION_NAME"), consts.NULLTERM,
+			[]byte("fn can not be empty"),
+		))
+		return
+	}
+
 	conn.Write(command.Response(
 		consts.JOB_CREATED,
 		handlerID,
 	))
 
-	ID, Fn, Payload := cmd.ParsePayload()
 	storage.AddJob(&models.Job{
 		Func:    Fn,
 		ID:      ID,
