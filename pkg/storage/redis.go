@@ -193,8 +193,12 @@ func (r *Redis) AssignJobToWorker(worker_id string, job_id string, fn string) {
 }
 
 func (r *Redis) UnassignJobFromWorker(worker_id string, job_id string, fn string) {
+	var count int64
 	for _, fn := range r.GetFuncs() {
-		r.meta.LRem(r.ctx, fmt.Sprintf("%s%s::%s", wrk_job_prefix, worker_id, fn), 0, job_id)
+		count, _ = r.meta.LRem(r.ctx, fmt.Sprintf("%s%s::%s", wrk_job_prefix, worker_id, fn), 0, job_id).Result()
+		if count > 0 {
+			break
+		}
 	}
 }
 
