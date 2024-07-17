@@ -32,6 +32,13 @@ func Register(fn string, ID []byte, conn net.Conn) {
 		workers[fn] = make(map[string]*Worker)
 	}
 
+	if _, ok := workers_next[string(ID)]; !ok {
+		workers_next[string(ID)] = &Worker{
+			conn:     conn,
+			sleeping: false,
+		}
+	}
+
 	workers[fn][string(ID)] = &Worker{
 		conn:     conn,
 		sleeping: false,
@@ -45,6 +52,8 @@ func Unregister(fn string, ID []byte) {
 	// fmt.Printf("[worker-unregister] Purge %s from %s\n", ID, fn)
 	delete(workers[fn], string(ID))
 	storage.DeleteWorker(string(ID), fn)
+
+	delete(workers_next, string(ID))
 }
 
 func List() map[string]string {

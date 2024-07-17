@@ -13,6 +13,14 @@ import (
 	"gearmanx/pkg/workers"
 )
 
+func WorkersNext(conn net.Conn) {
+	for wrk_id, wrk := range workers.NextStatus() {
+		conn.Write([]byte(fmt.Sprintf("%s : Sleeping ? %v\n", wrk_id, wrk.IsSleeping())))
+	}
+
+	conn.Write([]byte(".\n"))
+}
+
 func Status(conn net.Conn) {
 	fns := storage.Status()
 
@@ -54,6 +62,11 @@ func Workers(conn net.Conn) {
 }
 
 func Handle(conn net.Conn, buf []byte) bool {
+	if bytes.HasPrefix(buf, []byte("status_next")) {
+		WorkersNext(conn)
+		return true
+	}
+
 	if bytes.HasPrefix(buf, []byte("status")) {
 		Status(conn)
 		return true
