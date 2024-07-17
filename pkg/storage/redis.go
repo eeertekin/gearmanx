@@ -18,6 +18,8 @@ type Redis struct {
 	data    *redis.Client
 	workers *redis.Client
 
+	job_meta *redis.Client
+
 	ctx       context.Context
 	func_list *LocalStorage
 }
@@ -49,6 +51,10 @@ func NewRedisBackend(addr string) (*Redis, error) {
 		workers: redis.NewClient(&redis.Options{
 			Addr: addr,
 			DB:   2,
+		}),
+		job_meta: redis.NewClient(&redis.Options{
+			Addr: addr,
+			DB:   3,
 		}),
 	}
 
@@ -87,6 +93,7 @@ func (r *Redis) AddJob(job *models.Job) error {
 	}
 
 	r.data.Set(r.ctx, string(job.ID), job.Payload, 6*time.Hour)
+	r.job_meta.Set(r.ctx, string(job.ID), job.Func, 6*time.Hour)
 
 	return r.meta.LPush(r.ctx, "fn::"+job.Func, job.ID).Err()
 }
@@ -100,6 +107,7 @@ func (r *Redis) GetJob(fn string) (job *models.Job) {
 	payload, err := r.data.Get(r.ctx, ID).Result()
 	if err != nil {
 		r.meta.LRem(r.ctx, "inprogress::"+fn, 0, ID).Err()
+		r.job_meta.Expire(r.ctx, string(ID), time.Second).Err()
 		return nil
 	}
 
@@ -120,6 +128,7 @@ func (r *Redis) GetJobSync(fn string) (job *models.Job) {
 	payload, err := r.data.Get(r.ctx, ID).Result()
 	if err != nil {
 		r.meta.LRem(r.ctx, "inprogress::"+fn, 0, ID).Err()
+		r.job_meta.Expire(r.ctx, string(ID), time.Second).Err()
 		return nil
 	}
 
@@ -202,7 +211,7 @@ func (r *Redis) DeleteWorker(ID, fn string) {
 		assigned_jobs, _ := r.meta.LRange(r.ctx, key, 0, -1).Result()
 		for i := range assigned_jobs {
 			r.meta.LRem(r.ctx, "inprogress::"+fn, 0, assigned_jobs[i])
-			r.meta.LPush(r.ctx, "failed::"+fn, assigned_jobs[i])
+			r.job_meta.Expire(r.ctx, assigned_jobs[i], time.Second)
 		}
 	}
 	r.meta.Del(r.ctx, key)
