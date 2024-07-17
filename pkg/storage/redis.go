@@ -213,12 +213,13 @@ func (r *Redis) DeleteJob(ID []byte) error {
 			}
 		}
 	} else {
-		go r.meta.LRem(r.ctx, "inprogress::"+fn, 0, ID).Err()
+		go r.meta.LRem(r.ctx, "inprogress::"+fn, 0, ID)
 	}
 
-	go r.job_meta.Expire(r.ctx, string(ID), time.Second).Err()
+	go r.job_meta.Del(r.ctx, string(ID))
+	go r.data.Del(r.ctx, string(ID))
 
-	return r.data.Expire(r.ctx, string(ID), time.Second).Err()
+	return nil
 }
 
 func (r *Redis) AssignJobToWorker(worker_id string, job_id string, fn string) {
