@@ -274,9 +274,13 @@ func (r *Redis) GetFuncs() []string {
 }
 
 func (r *Redis) UpdateWorkers(fn string, ids []string) {
-	r.meta.Del(r.ctx, wrk_prefix+fn)
-	r.meta.LPush(r.ctx, wrk_prefix+fn, ids)
-	r.meta.Expire(r.ctx, wrk_prefix+fn, 5*time.Second)
+	pipe := r.meta.Pipeline()
+
+	pipe.Del(r.ctx, wrk_prefix+fn)
+	pipe.LPush(r.ctx, wrk_prefix+fn, ids)
+	pipe.Expire(r.ctx, wrk_prefix+fn, 5*time.Second)
+
+	pipe.Exec(r.ctx)
 }
 
 func (r *Redis) WaitJob(ID []byte) []byte {
