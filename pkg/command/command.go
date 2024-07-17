@@ -50,16 +50,16 @@ func Parse(raw []byte) *Command {
 }
 
 func (c *Command) Parse(raw []byte) []byte {
-	if !bytes.HasPrefix(raw, []byte("\x00")) {
+	if !bytes.HasPrefix(raw, consts.NULLTERM) {
 		// panic("not a command")
 		c.Type = consts.REQUEST
 		c.Task = consts.NOOP
 		return []byte{}
 	}
 
-	if bytes.Equal(raw[1:4], []byte("REQ")) {
+	if bytes.Equal(raw[1:4], consts.REQ) {
 		c.Type = consts.REQUEST
-	} else if bytes.Equal(raw[1:4], []byte("RES")) {
+	} else if bytes.Equal(raw[1:4], consts.RES) {
 		c.Type = consts.RESPONSE
 	}
 
@@ -72,7 +72,7 @@ func (c *Command) Parse(raw []byte) []byte {
 }
 
 func (c *Command) ParsePayload() (ID []byte, Fn string, Payload []byte) {
-	tmp := bytes.Split([]byte(c.Data), []byte("\x00"))
+	tmp := bytes.Split([]byte(c.Data), consts.NULLTERM)
 	if len(tmp) != 3 {
 		return
 	}
@@ -83,7 +83,7 @@ func (c *Command) ParsePayload() (ID []byte, Fn string, Payload []byte) {
 }
 
 func (c *Command) ParseResult() (ID []byte, Payload []byte) {
-	tmp := bytes.Split([]byte(c.Data), []byte("\x00"))
+	tmp := bytes.Split([]byte(c.Data), consts.NULLTERM)
 	if len(tmp) != 2 {
 		return
 	}
