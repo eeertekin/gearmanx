@@ -39,10 +39,7 @@ func Register(fn string, ID []byte, conn net.Conn) {
 		}
 	}
 
-	workers[fn][string(ID)] = &Worker{
-		conn:     conn,
-		sleeping: false,
-	}
+	workers[fn][string(ID)] = workers_next[string(ID)]
 }
 
 func Unregister(fn string, ID []byte) {
