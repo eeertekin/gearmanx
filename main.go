@@ -52,7 +52,9 @@ func main() {
 		}
 	}()
 
-	log.Fatal(gearmanxd.ListenAndServe())
+	if err := gearmanxd.ListenAndServe(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func Serve(conn net.Conn) {
