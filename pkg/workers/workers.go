@@ -71,7 +71,9 @@ func WakeUpAll(fn string) {
 	// fmt.Printf("[wake-up-all] %s\n", fn)
 	for i := range workers[fn] {
 		// fmt.Printf("[wake-up] %s\n", workers[fn][i].ID)
-		workers[fn][i].WakeUp()
+		if workers[fn][i].IsSleeping() {
+			workers[fn][i].WakeUp()
+		}
 	}
 }
 
