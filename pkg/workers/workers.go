@@ -1,20 +1,18 @@
 package workers
 
 import (
-	"gearmanx/pkg/command"
-	"gearmanx/pkg/consts"
 	"gearmanx/pkg/storage"
 	"net"
 	"sync"
 	"time"
 )
 
-var workers map[string]map[string]net.Conn
+var workers map[string]map[string]*Worker
 
 func init() {
 	mutex = sync.RWMutex{}
 
-	workers = make(map[string]map[string]net.Conn)
+	workers = make(map[string]map[string]*Worker)
 }
 
 var mutex sync.RWMutex
@@ -31,10 +29,13 @@ func Register(fn string, ID []byte, conn net.Conn) {
 	storage.AddWorker(string(ID), fn, conn.RemoteAddr().String())
 
 	if workers[fn] == nil {
-		workers[fn] = make(map[string]net.Conn)
+		workers[fn] = make(map[string]*Worker)
 	}
 
-	workers[fn][string(ID)] = conn
+	workers[fn][string(ID)] = &Worker{
+		conn:     conn,
+		sleeping: false,
+	}
 }
 
 func Unregister(fn string, ID []byte) {
@@ -57,9 +58,7 @@ func WakeUpAll(fn string) {
 	// fmt.Printf("[wake-up-all] %s\n", fn)
 	for i := range workers[fn] {
 		// fmt.Printf("[wake-up] %s\n", workers[fn][i].ID)
-		workers[fn][i].Write(command.Response(
-			consts.NOOP,
-		))
+		workers[fn][i].WakeUp()
 	}
 }
 
