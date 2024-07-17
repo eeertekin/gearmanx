@@ -178,6 +178,7 @@ func (r *Redis) DeleteJob(ID []byte) error {
 	for _, fn := range r.GetFuncs() {
 		r.meta.LRem(r.ctx, "inprogress::"+fn, 0, ID)
 	}
+	r.job_meta.Expire(r.ctx, string(ID), time.Second).Err()
 
 	return r.data.Expire(r.ctx, string(ID), time.Second).Err()
 }
