@@ -93,7 +93,11 @@ func (r *Redis) AddJob(job *models.Job) error {
 		r.meta.SAdd(r.ctx, "global::funcs", job.Func)
 	}
 
-	go r.jobs.HSet(r.ctx, string(job.ID), job)
+	p := r.jobs.Pipeline()
+	p.HSet(r.ctx, string(job.ID), job)
+	p.Expire(r.ctx, string(job.ID), 3*time.Hour)
+	p.Exec(r.ctx)
+
 	r.meta.LPush(r.ctx, "fn::"+job.Func, job.ID)
 
 	return nil
@@ -228,7 +232,7 @@ func (r *Redis) AddWorker(ID, fn, remote_addr string) {
 func (r *Redis) DeleteWorker(ID, fn string) {
 	r.workers.Del(r.ctx, wrk_prefix+ID)
 
-	meta_pipe := r.meta.Pipeline()
+	meta_pipe, jobs_pipe := r.meta.Pipeline(), r.jobs.Pipeline()
 
 	meta_pipe.LRem(r.ctx, wrk_prefix+fn, 0, ID)
 	key := fmt.Sprintf("%s%s::%s", wrk_job_prefix, ID, fn)
@@ -237,10 +241,12 @@ func (r *Redis) DeleteWorker(ID, fn string) {
 	assigned_jobs := r.meta.LRange(r.ctx, key, 0, -1).Val()
 	for i := range assigned_jobs {
 		meta_pipe.LRem(r.ctx, "inprogress::"+fn, 0, assigned_jobs[i])
+		jobs_pipe.Del(r.ctx, assigned_jobs[i])
 	}
 	meta_pipe.Del(r.ctx, key)
 
 	go meta_pipe.Exec(r.ctx)
+	jobs_pipe.Exec(r.ctx)
 }
 
 func (r *Redis) GetFuncs() []string {
