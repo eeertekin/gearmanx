@@ -21,6 +21,13 @@ func Close(ID, fn string) {
 	workers[fn][ID].Close()
 }
 
+func Sleep(ID string) {
+	mutex.RLock()
+	defer mutex.RUnlock()
+
+	workers_next[ID].Sleep()
+}
+
 func Register(fn string, ID []byte, conn net.Conn) {
 	// fmt.Printf("[worker-register] Register %s from %s\n", ID, fn)
 	mutex.Lock()

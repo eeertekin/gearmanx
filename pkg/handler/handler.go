@@ -133,6 +133,7 @@ func CanNotDo(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 }
 
 func PreSleep(conn net.Conn, iam *models.IAM, cmd *command.Command) {
+	workers.Sleep(iam.ID)
 	// fmt.Printf("[worker] Pre sleep requested\n")
 }
 
