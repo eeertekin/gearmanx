@@ -64,6 +64,10 @@ func List() map[string]string {
 	return storage.GetWorkers()
 }
 
+func ListPipe() map[string]string {
+	return storage.GetWorkersPipe()
+}
+
 func WakeUpAll(fn string) {
 	mutex.RLock()
 	defer mutex.RUnlock()

@@ -334,3 +334,38 @@ func (r *Redis) WakeUpCalls(cb func(fn string)) {
 		cb(fn.Payload)
 	}
 }
+
+func (r *Redis) GetWorkersPipe() map[string]string {
+	res := map[string]string{}
+
+	pipe := r.workers.Pipeline()
+
+	iter := r.workers.Scan(r.ctx, 0, "", 100000).Iterator()
+	var ID string
+	for iter.Next(r.ctx) {
+		ID = iter.Val()
+		pipe.SMembers(r.ctx, ID)
+	}
+
+	cmds, err := pipe.Exec(r.ctx)
+	if err != nil {
+		fmt.Printf("err> %s\n", err)
+	}
+
+	for _, cmd := range cmds {
+		ID := cmd.Args()[1].(string)
+		fns := cmd.(*redis.StringSliceCmd).Val()
+		for k := range fns {
+			if fns[k] == "" {
+				continue
+			}
+			if _, ok := res[ID]; !ok {
+				res[ID] = ""
+			}
+			res[ID] += fmt.Sprintf("%s ", fns[k])
+		}
+		res[ID] = strings.TrimRight(res[ID], " ")
+	}
+
+	return res
+}

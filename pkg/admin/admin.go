@@ -47,7 +47,7 @@ func Shutdown(conn net.Conn) {
 }
 
 func Workers(conn net.Conn) {
-	res := workers.List()
+	res := workers.ListPipe()
 
 	var tmp []string
 	var remote_addr []string

@@ -21,6 +21,7 @@ type Storage interface {
 	AddWorker(ID, fn, remote_addr string)
 	DeleteWorker(ID, fn string)
 	GetWorkers() map[string]string
+	GetWorkersPipe() map[string]string
 
 	Status() map[string]*models.FuncStatus
 	StatusUpdate()
@@ -132,4 +133,8 @@ func GetJobSync(fn string) *models.Job {
 
 func StatusUpdate() {
 	backend.StatusUpdate()
+}
+
+func GetWorkersPipe() map[string]string {
+	return backend.GetWorkersPipe()
 }
