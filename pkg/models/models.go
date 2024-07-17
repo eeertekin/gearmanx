@@ -3,8 +3,8 @@ package models
 import "fmt"
 
 type Job struct {
-	Func    string
-	Payload []byte
+	Func    string `redis:"fn"`
+	Payload []byte `redis:"payload"`
 	ID      []byte
 }
 

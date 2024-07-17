@@ -88,15 +88,24 @@ func (r *Redis) Close() {
 }
 
 func (r *Redis) AddJob(job *models.Job) error {
+	if job.Func == "" {
+		return errors.New("fn can not be empty")
+	}
+
 	if !r.func_list.IsSet(job.Func) {
 		r.func_list.Set(job.Func, true)
 		r.meta.SAdd(r.ctx, "global::funcs", job.Func)
 	}
 
-	r.data.Set(r.ctx, string(job.ID), job.Payload, 6*time.Hour)
-	r.job_meta.Set(r.ctx, string(job.ID), job.Func, 6*time.Hour)
+	go r.jobs.HSet(r.ctx, string(job.ID), job)
 
-	return r.meta.LPush(r.ctx, "fn::"+job.Func, job.ID).Err()
+	// TODO: Clear me
+	go r.data.Set(r.ctx, string(job.ID), job.Payload, 6*time.Hour)
+	//
+
+	r.meta.LPush(r.ctx, "fn::"+job.Func, job.ID)
+
+	return nil
 }
 
 func (r *Redis) GetJob(fn string) (job *models.Job) {
@@ -107,8 +116,7 @@ func (r *Redis) GetJob(fn string) (job *models.Job) {
 
 	payload, err := r.data.Get(r.ctx, ID).Result()
 	if err != nil {
-		r.meta.LRem(r.ctx, "inprogress::"+fn, 0, ID).Err()
-		r.job_meta.Expire(r.ctx, string(ID), time.Second).Err()
+		go r.meta.LRem(r.ctx, "inprogress::"+fn, 0, ID)
 		return nil
 	}
 
@@ -129,7 +137,6 @@ func (r *Redis) GetJobSync(fn string) (job *models.Job) {
 	payload, err := r.data.Get(r.ctx, ID).Result()
 	if err != nil {
 		r.meta.LRem(r.ctx, "inprogress::"+fn, 0, ID).Err()
-		r.job_meta.Expire(r.ctx, string(ID), time.Second).Err()
 		return nil
 	}
 
@@ -203,20 +210,11 @@ func (r *Redis) StatusUpdate() {
 }
 
 func (r *Redis) DeleteJob(ID []byte) error {
-	fn := r.job_meta.Get(r.ctx, string(ID)).Val()
-	if fn == "" {
-		fmt.Printf("[storage.DeleteJob] %s\n", fn)
-		var count int64
-		for _, fnx := range r.GetFuncs() {
-			if count = r.meta.LRem(r.ctx, "inprogress::"+fnx, 0, string(ID)).Val(); count > 0 {
-				break
-			}
-		}
-	} else {
-		go r.meta.LRem(r.ctx, "inprogress::"+fn, 0, ID)
-	}
+	fn := r.jobs.HGet(r.ctx, string(ID), "fn").Val()
+	go r.jobs.Del(r.ctx, string(ID))
+	go r.meta.LRem(r.ctx, "inprogress::"+fn, 0, ID)
 
-	go r.job_meta.Del(r.ctx, string(ID))
+	// TODO: Clear me
 	go r.data.Del(r.ctx, string(ID))
 
 	return nil
@@ -247,7 +245,6 @@ func (r *Redis) DeleteWorker(ID, fn string) {
 	r.workers.Del(r.ctx, wrk_prefix+ID)
 
 	meta_pipe := r.meta.Pipeline()
-	job_meta_pipe := r.job_meta.Pipeline()
 
 	meta_pipe.LRem(r.ctx, wrk_prefix+fn, 0, ID)
 	key := fmt.Sprintf("%s%s::%s", wrk_job_prefix, ID, fn)
@@ -256,12 +253,10 @@ func (r *Redis) DeleteWorker(ID, fn string) {
 	assigned_jobs := r.meta.LRange(r.ctx, key, 0, -1).Val()
 	for i := range assigned_jobs {
 		meta_pipe.LRem(r.ctx, "inprogress::"+fn, 0, assigned_jobs[i])
-		job_meta_pipe.Del(r.ctx, assigned_jobs[i])
 	}
 	meta_pipe.Del(r.ctx, key)
 
 	go meta_pipe.Exec(r.ctx)
-	go job_meta_pipe.Exec(r.ctx)
 }
 
 func (r *Redis) GetFuncs() []string {
