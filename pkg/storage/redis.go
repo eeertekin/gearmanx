@@ -173,10 +173,10 @@ func (r *Redis) StatusUpdate() {
 		go func(fn string) {
 			defer wg.Done()
 			f := models.FuncStatus{
-				Name: fn,
+				Name:       fn,
+				InProgress: r.meta.LLen(r.ctx, "inprogress::"+fn).Val(),
+				Jobs:       r.meta.LLen(r.ctx, "fn::"+fn).Val(),
 			}
-			f.InProgress, _ = r.meta.LLen(r.ctx, "inprogress::"+fn).Result()
-			f.Jobs, _ = r.meta.LLen(r.ctx, "fn::"+fn).Result()
 			f.Jobs += f.InProgress
 
 			count := int64(0)
@@ -186,10 +186,9 @@ func (r *Redis) StatusUpdate() {
 				f.Workers += count
 			}
 
+			f.InProgress = f.Jobs
 			if f.Jobs >= f.Workers {
 				f.InProgress = f.Workers
-			} else {
-				f.InProgress = f.Jobs
 			}
 
 			r.meta.HSet(r.ctx, "status",
