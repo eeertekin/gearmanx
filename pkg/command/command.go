@@ -43,6 +43,9 @@ func createByteArray(op_type int, task int, args ...[]byte) (arr []byte) {
 }
 
 func Parse(raw []byte) *Command {
+	if len(raw) == 0 {
+		return nil
+	}
 	c := Command{}
 	c.Parse(raw)
 

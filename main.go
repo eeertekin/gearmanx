@@ -96,6 +96,9 @@ func Serve(conn net.Conn) {
 		// To disable parse packages, open it
 		// commands := ParseCommands(buf[0:bsize])
 		for i := range commands {
+			if commands[i] == nil {
+				continue
+			}
 			handler.Run(conn, &iam, commands[i])
 		}
 	}
