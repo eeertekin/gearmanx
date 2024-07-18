@@ -89,7 +89,10 @@ func Serve(conn net.Conn) {
 		}
 
 		commands := parser.Parse(buf, bsize, &fragmented_buf)
-
+		if commands == nil {
+			fmt.Printf("[main] parser returned nil\n")
+			break
+		}
 		// To disable parse packages, open it
 		// commands := ParseCommands(buf[0:bsize])
 		for i := range commands {

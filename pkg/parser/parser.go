@@ -7,11 +7,17 @@ import (
 	"gearmanx/pkg/consts"
 )
 
+const MAX_SIZE int = 128 * 1024 * 1024 // 128MB
+
 func Parse(buf []byte, bsize int, fragmented_buf *bytes.Buffer) []*command.Command {
 	if bytes.HasPrefix(buf, consts.NULLTERM) {
 		size := int(binary.BigEndian.Uint32(buf[8:12]))
 		if cap(buf) >= size+12 {
 			return ParseCommands(buf[0:bsize])
+		}
+
+		if size >= MAX_SIZE {
+			return nil
 		}
 
 		*fragmented_buf = *bytes.NewBuffer(make([]byte, 0, size+12))
