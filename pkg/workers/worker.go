@@ -21,10 +21,10 @@ func (w *Worker) Close() error {
 }
 
 func (w *Worker) WakeUp() {
+	w.sleeping = false
 	w.conn.Write(command.Response(
 		consts.NOOP,
 	))
-	w.sleeping = false
 }
 
 func (w *Worker) Sleep() {
