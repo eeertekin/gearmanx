@@ -84,7 +84,7 @@ func Serve(conn net.Conn) {
 			break
 		}
 
-		if admin.Handle(conn, buf) {
+		if admin.Handle(conn, buf[0:bsize]) {
 			continue
 		}
 

@@ -62,27 +62,27 @@ func Workers(conn net.Conn) {
 }
 
 func Handle(conn net.Conn, buf []byte) bool {
-	if bytes.HasPrefix(buf, []byte("status_next")) {
+	if bytes.Equal(buf, []byte("status_next\r\n")) {
 		WorkersNext(conn)
 		return true
 	}
 
-	if bytes.HasPrefix(buf, []byte("status")) {
+	if bytes.Equal(buf, []byte("status\r\n")) {
 		Status(conn)
 		return true
 	}
 
-	if bytes.HasPrefix(buf, []byte("version")) {
+	if bytes.Equal(buf, []byte("version\r\n")) {
 		Version(conn)
 		return true
 	}
 
-	if bytes.HasPrefix(buf, []byte("shutdown")) {
+	if bytes.Equal(buf, []byte("shutdown\r\n")) {
 		Shutdown(conn)
 		return true
 	}
 
-	if bytes.HasPrefix(buf, []byte("workers")) {
+	if bytes.Equal(buf, []byte("workers\r\n")) {
 		Workers(conn)
 		return true
 	}
