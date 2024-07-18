@@ -46,13 +46,10 @@ func (g *GearmanX) HandleSignals() {
 		<-c
 		g.shutting_down = true
 
-		for _, fn := range storage.GetFuncs() {
-			for _, wID := range workers.GetWorkerIDs(fn) {
-				fmt.Printf("[shutdown] Closing worker connection #%s\n", wID)
-				workers.Close(wID, fn)
-				fmt.Printf("storage.DeleteWorker: %s => %s\n", wID, fn)
-				storage.DeleteWorker(wID, fn)
-			}
+		wlist := workers.GetNext()
+		for ID, w := range wlist {
+			fmt.Printf("[shutdown] Closing next worker connection #%s\n", ID)
+			w.Close()
 		}
 
 		fmt.Printf("[shutdown] worker sockets closed\n")
