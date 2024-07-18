@@ -62,27 +62,29 @@ func Workers(conn net.Conn) {
 }
 
 func Handle(conn net.Conn, buf []byte) bool {
-	if bytes.Equal(buf, []byte("status_next\r\n")) {
+	buf = bytes.Trim(buf, "\r\n")
+
+	if bytes.Equal(buf, []byte("status_next")) {
 		WorkersNext(conn)
 		return true
 	}
 
-	if bytes.Equal(buf, []byte("status\r\n")) {
+	if bytes.Equal(buf, []byte("status")) {
 		Status(conn)
 		return true
 	}
 
-	if bytes.Equal(buf, []byte("version\r\n")) {
+	if bytes.Equal(buf, []byte("version")) {
 		Version(conn)
 		return true
 	}
 
-	if bytes.Equal(buf, []byte("shutdown\r\n")) {
+	if bytes.Equal(buf, []byte("shutdown")) {
 		Shutdown(conn)
 		return true
 	}
 
-	if bytes.Equal(buf, []byte("workers\r\n")) {
+	if bytes.Equal(buf, []byte("workers")) {
 		Workers(conn)
 		return true
 	}
