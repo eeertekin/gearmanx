@@ -71,10 +71,12 @@ func NewRedisBackend(addr string) (*Redis, error) {
 }
 
 func (r *Redis) ClearWorkers() {
+	pipe := r.workers.Pipeline()
 	worker_keys, _ := r.workers.Keys(r.ctx, fmt.Sprintf("%s/%d::wrk::*", hostname, config.Port)).Result()
 	for i := range worker_keys {
-		r.workers.Del(r.ctx, worker_keys[i])
+		pipe.Del(r.ctx, worker_keys[i])
 	}
+	pipe.Exec(r.ctx)
 }
 
 func (r *Redis) Close() {
