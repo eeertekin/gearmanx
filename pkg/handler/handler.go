@@ -168,21 +168,25 @@ func SubmitJob(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 		handlerID,
 	))
 
+	go func(handlerID, ID []byte, conn net.Conn) {
+		fmt.Printf("doNormal(%s) before wait: %s %s\n", Fn, ID, Payload)
+		result := storage.WaitJob(ID)
+		fmt.Printf("doNormal(%s): %s %s  <= %s\n", Fn, ID, Payload, result)
+
+		conn.Write(command.Response(
+			consts.WORK_COMPLETE,
+			handlerID,
+			consts.NULLTERM,
+			result,
+		))
+	}(handlerID, ID, conn)
+
 	storage.AddJob(&models.Job{
 		Func:    Fn,
 		ID:      ID,
 		Payload: Payload,
 	})
-	go storage.WakeUpAll(Fn)
-
-	result := storage.WaitJob(ID)
-
-	conn.Write(command.Response(
-		consts.WORK_COMPLETE,
-		handlerID,
-		consts.NULLTERM,
-		result,
-	))
+	storage.WakeUpAll(Fn)
 
 }
 
