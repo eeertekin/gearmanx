@@ -8,5 +8,18 @@ func init() {
 }
 
 func NextStatus() map[string]*Worker {
+	mutex.RLock()
+	defer mutex.RUnlock()
 	return workers_next
+}
+
+func GetNext() map[string]*Worker {
+	mutex.RLock()
+	defer mutex.RUnlock()
+
+	snapshot := map[string]*Worker{}
+	for i := range workers_next {
+		snapshot[i] = workers_next[i]
+	}
+	return snapshot
 }
