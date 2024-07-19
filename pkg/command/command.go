@@ -60,9 +60,9 @@ func (c *Command) Parse(raw []byte) []byte {
 		return []byte{}
 	}
 
-	if bytes.Equal(raw[1:4], consts.REQ) {
+	if bytes.Equal(raw[0:4], consts.REQ) {
 		c.Type = consts.REQUEST
-	} else if bytes.Equal(raw[1:4], consts.RES) {
+	} else if bytes.Equal(raw[0:4], consts.RES) {
 		c.Type = consts.RESPONSE
 	}
 

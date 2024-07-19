@@ -49,3 +49,40 @@ func TestNewByteWithData(t *testing.T) {
 	}
 
 }
+
+func TestNewByteWithDataResponse(t *testing.T) {
+	test_handler := "x:h:123"
+	test_payload := "job-data-123"
+
+	test_data := command.Response(
+		consts.WORK_COMPLETE,
+
+		[]byte(test_handler), consts.NULLTERM,
+		[]byte(test_payload),
+	)
+
+	cmd := command.Parse(test_data)
+
+	if cmd.Type != consts.RESPONSE {
+		t.Errorf("\nType %d wanted, got %d", consts.RESPONSE, cmd.Type)
+	}
+
+	if cmd.Task != consts.WORK_COMPLETE {
+		t.Errorf("\nTask %d wanted, got %d", consts.WORK_COMPLETE, cmd.Task)
+	}
+
+	if cmd.Size != 20 {
+		t.Errorf("\nSize %d wanted, got %d", 20, cmd.Size)
+	}
+
+	ID, Payload := cmd.ParseResult()
+
+	if !bytes.Equal(ID, []byte(test_handler)) {
+		t.Errorf("\nJobID %d wanted, got %d", 28, cmd.Size)
+	}
+
+	if !bytes.Equal(Payload, []byte(test_payload)) {
+		t.Errorf("\nPayload %v wanted,\n    got %v", []byte(test_payload), Payload)
+	}
+
+}
