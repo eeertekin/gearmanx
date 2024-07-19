@@ -75,7 +75,7 @@ func (c *Command) Parse(raw []byte) []byte {
 }
 
 func (c *Command) ParsePayload() (ID []byte, Fn string, Payload []byte) {
-	tmp := bytes.Split([]byte(c.Data), consts.NULLTERM)
+	tmp := bytes.SplitN(c.Data, consts.NULLTERM, 3)
 	if len(tmp) != 3 {
 		return
 	}
@@ -86,7 +86,7 @@ func (c *Command) ParsePayload() (ID []byte, Fn string, Payload []byte) {
 }
 
 func (c *Command) ParseResult() (ID []byte, Payload []byte) {
-	tmp := bytes.Split([]byte(c.Data), consts.NULLTERM)
+	tmp := bytes.SplitN(c.Data, consts.NULLTERM, 2)
 	if len(tmp) != 2 {
 		return
 	}
