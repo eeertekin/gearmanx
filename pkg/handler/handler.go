@@ -72,7 +72,6 @@ func Run(conn net.Conn, iam *models.IAM, cmd *command.Command) bool {
 		))
 
 		if consts.String(cmd.Task) == "" {
-			fmt.Printf("[unknown] TaskID %s requested (%s)\n", cmd.Task, consts.String(cmd.Task))
 			conn.Close()
 			return false
 		}
