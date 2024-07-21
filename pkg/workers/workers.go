@@ -93,16 +93,9 @@ func GetWorkerIDs(fn string) (ids []string) {
 
 func Ticker() {
 	ticker := time.NewTicker(5 * time.Second)
-	done := make(chan bool)
-
-	for {
-		select {
-		case <-done:
-			return
-		case <-ticker.C:
-			for _, fn := range storage.GetFuncs() {
-				storage.UpdateWorkers(fn, GetWorkerIDs(fn))
-			}
+	for range ticker.C {
+		for _, fn := range storage.GetFuncs() {
+			storage.UpdateWorkers(fn, GetWorkerIDs(fn))
 		}
 	}
 }
