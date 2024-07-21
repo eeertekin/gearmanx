@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -21,6 +20,8 @@ import (
 	"gearmanx/pkg/models"
 	"gearmanx/pkg/storage"
 	"gearmanx/pkg/workers"
+
+	"github.com/valyala/bytebufferpool"
 )
 
 func main() {
@@ -91,8 +92,7 @@ func Serve(conn net.Conn) {
 		c := command.ParseHeader(header_buf[:bsize])
 		if c.Size != 0 {
 			b := make([]byte, c.Size)
-			bx := bytes.Buffer{}
-			total := 0
+			bx := bytebufferpool.Get()
 
 			for {
 				subbsize, err := conn.Read(b)
@@ -101,14 +101,16 @@ func Serve(conn net.Conn) {
 					break
 				}
 				bx.Write(b[:subbsize])
-				total += subbsize
 
-				if total == c.Size {
+				if bx.Len() == c.Size {
 					break
 				}
 			}
-			bx.Truncate(c.Size)
-			c.Data = bx.Bytes()
+			// c.Data = bx.B[0:c.Size]
+			c.Data = make([]byte, c.Size)
+			copy(c.Data, bx.B[:c.Size])
+
+			bytebufferpool.Put(bx)
 		}
 
 		handler.Run(conn, &iam, c)
