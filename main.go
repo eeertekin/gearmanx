@@ -46,7 +46,7 @@ func main() {
 	})
 
 	go func() {
-		status_ticker := time.NewTicker(1000 * time.Millisecond)
+		status_ticker := time.NewTicker(2 * time.Second)
 		for range status_ticker.C {
 			storage.StatusUpdate()
 		}
