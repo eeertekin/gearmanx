@@ -3,7 +3,9 @@ package command
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"gearmanx/pkg/consts"
+	"os"
 )
 
 type Command struct {
@@ -50,6 +52,29 @@ func Parse(raw []byte) *Command {
 	c.Parse(raw)
 
 	return &c
+}
+
+func ParseHeader(raw []byte) *Command {
+	c := &Command{}
+	if !bytes.HasPrefix(raw, consts.NULLTERM) {
+		fmt.Printf("raw: %s\n", raw)
+		os.Exit(1)
+		// panic("not a command")
+		c.Type = consts.REQUEST
+		c.Task = consts.NOOP
+		return c
+	}
+
+	if bytes.Equal(raw[0:4], consts.REQ) {
+		c.Type = consts.REQUEST
+	} else if bytes.Equal(raw[0:4], consts.RES) {
+		c.Type = consts.RESPONSE
+	}
+
+	c.Task = int(binary.BigEndian.Uint32(raw[4:8]))
+	c.Size = int(binary.BigEndian.Uint32(raw[8:12]))
+
+	return c
 }
 
 func (c *Command) Parse(raw []byte) []byte {

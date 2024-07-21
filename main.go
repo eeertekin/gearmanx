@@ -19,7 +19,6 @@ import (
 	"gearmanx/pkg/handler"
 	"gearmanx/pkg/http"
 	"gearmanx/pkg/models"
-	"gearmanx/pkg/parser"
 	"gearmanx/pkg/storage"
 	"gearmanx/pkg/workers"
 )
@@ -63,7 +62,7 @@ func main() {
 func Serve(conn net.Conn) {
 	defer conn.Close()
 
-	buf := make([]byte, 4096)
+	header_buf := make([]byte, 12)
 	var err error
 	var bsize int
 
@@ -73,12 +72,9 @@ func Serve(conn net.Conn) {
 	}
 
 	clients.Register(&iam)
-	commands := []*command.Command{}
-
-	fragmented_buf := bytes.Buffer{}
 
 	for {
-		bsize, err = conn.Read(buf)
+		bsize, err = conn.Read(header_buf)
 		if err == io.EOF {
 			break
 		}
@@ -88,24 +84,34 @@ func Serve(conn net.Conn) {
 			break
 		}
 
-		if admin.Handle(conn, buf[0:bsize]) {
+		if admin.Handle(conn, header_buf[:bsize]) {
 			continue
 		}
 
-		commands = parser.Parse(buf, bsize, &fragmented_buf)
-		if commands == nil {
-			fmt.Printf("[main] parser returned nil\n")
-			break
+		c := command.ParseHeader(header_buf[:bsize])
+		if c.Size != 0 {
+			b := make([]byte, c.Size)
+			bx := bytes.Buffer{}
+			total := 0
+
+			for {
+				subbsize, err := conn.Read(b)
+				if err != nil {
+					fmt.Printf("err> %s\n", err)
+					break
+				}
+				bx.Write(b[:subbsize])
+				total += subbsize
+
+				if total == c.Size {
+					break
+				}
+			}
+			bx.Truncate(c.Size)
+			c.Data = bx.Bytes()
 		}
 
-		// To disable parse packages, open it
-		// commands := ParseCommands(buf[0:bsize])
-		for i := range commands {
-			if commands[i] == nil {
-				continue
-			}
-			handler.Run(conn, &iam, commands[i])
-		}
+		handler.Run(conn, &iam, c)
 	}
 
 	// fmt.Printf("Connection closed %s\n", conn.RemoteAddr())
