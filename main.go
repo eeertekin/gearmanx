@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"runtime"
 	"time"
 
 	"gearmanx/pkg/admin"
@@ -50,6 +51,7 @@ func main() {
 		status_ticker := time.NewTicker(1 * time.Second)
 		for range status_ticker.C {
 			storage.StatusUpdate()
+			// PrintMemUsage()
 		}
 	}()
 
@@ -61,7 +63,7 @@ func main() {
 func Serve(conn net.Conn) {
 	defer conn.Close()
 
-	buf := make([]byte, 8192)
+	buf := make([]byte, 4096)
 	var err error
 	var bsize int
 
@@ -90,15 +92,11 @@ func Serve(conn net.Conn) {
 			continue
 		}
 
-		// v1
 		commands = parser.Parse(buf, bsize, &fragmented_buf)
 		if commands == nil {
 			fmt.Printf("[main] parser returned nil\n")
 			break
 		}
-
-		// v2
-		// commands = parser2.Parse(buf[:bsize], &fragmented_buf)
 
 		// To disable parse packages, open it
 		// commands := ParseCommands(buf[0:bsize])
@@ -117,4 +115,13 @@ func Serve(conn net.Conn) {
 			workers.Unregister(iam.Functions[i], []byte(iam.ID))
 		}
 	}
+}
+
+func PrintMemUsage() {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	fmt.Printf("Alloc = %v MiB", m.Alloc/1024/1024)
+	fmt.Printf("\tTotalAlloc = %v MiB", m.TotalAlloc/1024/1024)
+	fmt.Printf("\tSys = %v MiB", m.Sys/1024/1024)
+	fmt.Printf("\tNumGC = %v\n", m.NumGC)
 }
