@@ -6,7 +6,6 @@ require (
 	github.com/eeertekin/release v0.0.0-20240220133039-9d9139b67e66
 	github.com/redis/go-redis/v9 v9.5.1
 	github.com/rs/xid v1.5.0
-	github.com/valyala/bytebufferpool v1.0.0
 )
 
 require (

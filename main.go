@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -18,10 +19,9 @@ import (
 	"gearmanx/pkg/handler"
 	"gearmanx/pkg/http"
 	"gearmanx/pkg/models"
+	"gearmanx/pkg/parser"
 	"gearmanx/pkg/storage"
 	"gearmanx/pkg/workers"
-
-	"github.com/valyala/bytebufferpool"
 )
 
 func main() {
@@ -63,7 +63,7 @@ func main() {
 func Serve(conn net.Conn) {
 	defer conn.Close()
 
-	header_buf := make([]byte, 12)
+	buf := make([]byte, 4096)
 	var err error
 	var bsize int
 
@@ -73,9 +73,12 @@ func Serve(conn net.Conn) {
 	}
 
 	clients.Register(&iam)
+	commands := []*command.Command{}
+
+	fragmented_buf := bytes.Buffer{}
 
 	for {
-		bsize, err = conn.Read(header_buf)
+		bsize, err = conn.Read(buf)
 		if err == io.EOF {
 			break
 		}
@@ -85,35 +88,24 @@ func Serve(conn net.Conn) {
 			break
 		}
 
-		if admin.Handle(conn, header_buf[:bsize]) {
+		if admin.Handle(conn, buf[0:bsize]) {
 			continue
 		}
 
-		c := command.ParseHeader(header_buf[:bsize])
-		if c.Size != 0 {
-			b := make([]byte, c.Size)
-			bx := bytebufferpool.Get()
-
-			for {
-				subbsize, err := conn.Read(b)
-				if err != nil {
-					fmt.Printf("err> %s\n", err)
-					break
-				}
-				bx.Write(b[:subbsize])
-
-				if bx.Len() == c.Size {
-					break
-				}
-			}
-			// c.Data = bx.B[0:c.Size]
-			c.Data = make([]byte, c.Size)
-			copy(c.Data, bx.B[:c.Size])
-
-			bytebufferpool.Put(bx)
+		commands = parser.Parse(buf, bsize, &fragmented_buf)
+		if commands == nil {
+			fmt.Printf("[main] parser returned nil\n")
+			break
 		}
 
-		handler.Run(conn, &iam, c)
+		// To disable parse packages, open it
+		// commands := ParseCommands(buf[0:bsize])
+		for i := range commands {
+			if commands[i] == nil {
+				continue
+			}
+			handler.Run(conn, &iam, commands[i])
+		}
 	}
 
 	// fmt.Printf("Connection closed %s\n", conn.RemoteAddr())
