@@ -335,10 +335,8 @@ func (r *Redis) GetWorkersPipe() map[string]string {
 	pipe := r.workers.Pipeline()
 
 	iter := r.workers.Scan(r.ctx, 0, "", 100000).Iterator()
-	var ID string
 	for iter.Next(r.ctx) {
-		ID = iter.Val()
-		pipe.SMembers(r.ctx, ID)
+		pipe.SMembers(r.ctx, iter.Val())
 	}
 
 	cmds, err := pipe.Exec(r.ctx)
