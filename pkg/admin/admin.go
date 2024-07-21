@@ -61,31 +61,32 @@ func Workers(conn net.Conn) {
 	conn.Write([]byte(".\n"))
 }
 
+var router map[string]func(net.Conn)
+var max_size int
+
+func init() {
+	router = map[string]func(net.Conn){
+		"status_next": WorkersNext,
+		"status":      Status,
+		"version":     Version,
+		"shutdown":    Shutdown,
+		"workers":     Workers,
+	}
+	for i := range router {
+		if len(i) > max_size {
+			max_size = len(i)
+		}
+	}
+}
+
 func Handle(conn net.Conn, buf []byte) bool {
 	buf = bytes.Trim(buf, "\r\n")
-
-	if bytes.Equal(buf, []byte("status_next")) {
-		WorkersNext(conn)
-		return true
+	if len(buf) > max_size {
+		return false
 	}
 
-	if bytes.Equal(buf, []byte("status")) {
-		Status(conn)
-		return true
-	}
-
-	if bytes.Equal(buf, []byte("version")) {
-		Version(conn)
-		return true
-	}
-
-	if bytes.Equal(buf, []byte("shutdown")) {
-		Shutdown(conn)
-		return true
-	}
-
-	if bytes.Equal(buf, []byte("workers")) {
-		Workers(conn)
+	if _, ok := router[string(buf)]; ok {
+		router[string(buf)](conn)
 		return true
 	}
 
