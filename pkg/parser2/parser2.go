@@ -1,23 +1,36 @@
 package parser2
 
-import "gearmanx/pkg/command"
+import (
+	"bytes"
+	"gearmanx/pkg/command"
+)
 
-func Parse(raw []byte) (part []byte, cmds []*command.Command) {
+func Parse(raw []byte, part *bytes.Buffer) (cmds []*command.Command) {
 	for {
 		if len(raw) < 12 {
-			part = make([]byte, len(raw))
-			copy(part, raw[0:])
+			part.Write(raw)
 			break
 		}
-		c, err := command.Decode(raw)
-		if err != nil {
-			part = make([]byte, len(raw))
-			copy(part, raw[0:])
+		if part.Len() > 0 {
+			part.Write(raw)
+
+			c, err := command.Decode(part.Bytes())
+			if err != nil {
+				break
+			}
+			part.Reset()
+			cmds = append(cmds, c)
 			break
+		} else {
+			c, err := command.Decode(raw)
+			if err != nil {
+				part.Write(raw)
+				break
+			}
+			cmds = append(cmds, c)
+			raw = raw[c.Size+12:]
 		}
-		cmds = append(cmds, c)
-		raw = raw[c.Size+12:]
 	}
 
-	return part, cmds
+	return cmds
 }

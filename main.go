@@ -11,6 +11,7 @@ import (
 
 	"gearmanx/pkg/admin"
 	"gearmanx/pkg/clients"
+	"gearmanx/pkg/command"
 	"gearmanx/pkg/config"
 	"gearmanx/pkg/consts"
 	"gearmanx/pkg/daemon"
@@ -60,7 +61,7 @@ func main() {
 func Serve(conn net.Conn) {
 	defer conn.Close()
 
-	buf := make([]byte, 1024)
+	buf := make([]byte, 8192)
 	var err error
 	var bsize int
 
@@ -72,7 +73,6 @@ func Serve(conn net.Conn) {
 	clients.Register(&iam)
 	commands := []*command.Command{}
 
-	// v1
 	fragmented_buf := bytes.Buffer{}
 
 	for {
@@ -96,6 +96,10 @@ func Serve(conn net.Conn) {
 			fmt.Printf("[main] parser returned nil\n")
 			break
 		}
+
+		// v2
+		// commands = parser2.Parse(buf[:bsize], &fragmented_buf)
+
 		// To disable parse packages, open it
 		// commands := ParseCommands(buf[0:bsize])
 		for i := range commands {
