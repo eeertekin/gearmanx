@@ -70,7 +70,9 @@ func Serve(conn net.Conn) {
 	}
 
 	clients.Register(&iam)
+	commands := []*command.Command{}
 
+	// v1
 	fragmented_buf := bytes.Buffer{}
 
 	for {
@@ -88,7 +90,8 @@ func Serve(conn net.Conn) {
 			continue
 		}
 
-		commands := parser.Parse(buf, bsize, &fragmented_buf)
+		// v1
+		commands = parser.Parse(buf, bsize, &fragmented_buf)
 		if commands == nil {
 			fmt.Printf("[main] parser returned nil\n")
 			break
