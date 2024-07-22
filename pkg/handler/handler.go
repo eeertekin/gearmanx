@@ -51,6 +51,7 @@ func init() {
 		consts.WORK_COMPLETE:   WorkComplete,
 		consts.WORK_FAIL:       WorkFailed,
 		consts.WORK_EXCEPTION:  WorkComplete,
+		consts.ALL_YOURS:       NotImplemented,
 
 		// Client
 		consts.SUBMIT_JOB:      SubmitJob,
@@ -304,4 +305,9 @@ func WorkFailed(conn net.Conn, iam *models.IAM, cmd *command.Command) {
 	fn := storage.DeleteJob(ID)
 	storage.UnassignJobFromWorker(iam.ID, string(ID), fn)
 	storage.JobResult(ID, []byte{})
+}
+
+func NotImplemented(conn net.Conn, iam *models.IAM, cmd *command.Command) {
+	fmt.Printf("[not-implemented] %s requested\n", consts.String(cmd.Task))
+	conn.Close()
 }
