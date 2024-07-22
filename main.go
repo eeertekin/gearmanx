@@ -47,13 +47,15 @@ func main() {
 		workers.WakeUpAll(fn)
 	})
 
-	go func() {
-		status_ticker := time.NewTicker(1 * time.Second)
-		for range status_ticker.C {
-			storage.StatusUpdate()
-			// PrintMemUsage()
-		}
-	}()
+	if config.ObserverMode {
+		go func() {
+			status_ticker := time.NewTicker(1 * time.Second)
+			for range status_ticker.C {
+				storage.StatusUpdate()
+				// PrintMemUsage()
+			}
+		}()
+	}
 
 	if err := gearmanxd.ListenAndServe(); err != nil {
 		log.Fatal(err)

@@ -8,6 +8,8 @@ var BackendURI string
 var Port int
 var Addr string
 
+var ObserverMode bool
+
 func Parse() {
 	backend_uri := flag.String("storage", "redis://127.0.0.1:6379", "storage URI")
 	listen_port := flag.Int("p", 4730, "port")
@@ -16,6 +18,7 @@ func Parse() {
 	_ = flag.String("tcp", "tcp", "protocol")
 	_ = flag.Int("j", 3, "retry count")
 	_ = flag.Int("t", 16, "thread count")
+	ObserverMode = *flag.Bool("o", false, "thread count")
 
 	flag.Parse()
 
