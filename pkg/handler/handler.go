@@ -66,6 +66,16 @@ func init() {
 
 func Run(conn net.Conn, iam *models.IAM, cmd *command.Command) bool {
 	if _, ok := fn_router[cmd.Task]; !ok {
+		if cmd.Task == consts.NOOP {
+			conn.Write(command.Response(
+				consts.ERROR,
+				[]byte("GEARMAN_INVALID_MAGIC"), consts.NULLTERM,
+				[]byte(""),
+			))
+			conn.Close()
+			return false
+		}
+
 		conn.Write(command.Response(
 			consts.ERROR,
 			[]byte("GEARMAN_UNKNOWN_OPTION"), consts.NULLTERM,
