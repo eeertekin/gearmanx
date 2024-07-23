@@ -81,12 +81,9 @@ func Run(conn net.Conn, iam *models.IAM, cmd *command.Command) bool {
 			[]byte("GEARMAN_UNKNOWN_OPTION"), consts.NULLTERM,
 			[]byte("not implemented"),
 		))
+		conn.Close()
+		fmt.Printf("[unknown] %s requested with (%d)\n", consts.String(cmd.Task), len(cmd.Data))
 
-		if consts.String(cmd.Task) == "" {
-			conn.Close()
-			return false
-		}
-		fmt.Printf("[unknown] %s requested with (%s)\n", consts.String(cmd.Task), cmd.Data)
 		return false
 	}
 
